@@ -1,13 +1,13 @@
-import { Controller, Post, Body, Res } from '@nestjs/common';
+import { Controller, Post, Get, Body, Res, Req } from '@nestjs/common';
 import { Request, Response } from 'express';
 
 @Controller('token')
 export class TokenController {
   @Post('issue')
   issueToken(@Body() body: any, @Res() response: Response): any {
-    const { concertId } = body;
+    const { UUID } = body;
 
-    if (concertId) {
+    if (UUID) {
       response.setHeader('Token', 'tokenvalue');
 
       return response.status(200).json({
@@ -18,13 +18,10 @@ export class TokenController {
     }
   }
 
-  @Post('status')
-  statusToken(@Body() body: any, @Res() response: Response): any {
-    const { concertId } = body;
-
-    if (concertId) {
+  @Get('status')
+  statusToken(@Req() request: Request, @Res() response: Response): any {
+    if (request.header('Token')) {
       response.setHeader('Token', 'tokenvalue');
-
       return response.status(200).json({
         tokenState: 'WAIT',
       });
