@@ -33,13 +33,7 @@ export class ConcertController {
     @Res() response: Response,
   ): any {
     if (concertId && date) {
-      const availableSeats = [
-        1,
-        4,
-        15,
-        21,
-        45,
-      ];
+      const availableSeats = [1, 4, 15, 21, 45];
 
       return response.status(200).json({
         concertId: Number(concertId),
@@ -64,7 +58,7 @@ export class ConcertController {
         concertId: Number(concertId),
         date,
         seatNumber,
-        tempTime: Date.now()
+        tempTime: Date.now(),
       });
     } else {
       return response.status(500);

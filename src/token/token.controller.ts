@@ -1,9 +1,9 @@
 import { Controller, Post, Get, Body, Res, Req } from '@nestjs/common';
 import { Request, Response } from 'express';
 
-@Controller('token')
+@Controller('waiting-queue')
 export class TokenController {
-  @Post('issue')
+  @Post()
   issueToken(@Body() body: any, @Res() response: Response): any {
     const { UUID } = body;
 
@@ -18,7 +18,7 @@ export class TokenController {
     }
   }
 
-  @Get('status')
+  @Get()
   statusToken(@Req() request: Request, @Res() response: Response): any {
     if (request.header('Token')) {
       response.setHeader('Token', 'tokenvalue');

@@ -4,15 +4,12 @@ import { Request, Response } from 'express';
 @Controller('payment')
 export class PaymentController {
   @Post()
-  payment(
-    @Body() body: any,
-    @Res() response: Response,
-  ): any {
+  payment(@Body() body: any, @Res() response: Response): any {
     const { userId, concertId, date, seatNumber } = body;
     if (userId && concertId && date && seatNumber) {
       return response.status(200).json({
-        status: "Success",
-        tokenState: "Expired",
+        status: 'Success',
+        tokenState: 'Expired',
         userId,
         concertId,
         date,
