@@ -11,10 +11,17 @@ sequenceDiagram
   participant DB as DB
   participant 스케줄러
 
+alt 토큰을 처음 발급
   사용자 ->>+ 대기열: 토큰 요청
   대기열 ->>+ DB: 대기열 등록 요청(NONE->WAIT)
   DB -->>- 대기열: 대기열 등록 완료
   대기열 -->>- 사용자: 대기열 정보 응답
+else 토큰을 이미 발급 받음
+  사용자 ->>+ 대기열: 토큰 요청
+  대기열 ->>+ DB: 대기열 등록 요청(NONE->WAIT)
+  DB -->>- 대기열: 대기열 기존 정보 응답 (WAIT OR ACTIVE)
+  대기열 -->>- 사용자: 대기열 정보 응답
+end
 
 loop 특정 시간마다 스케줄링
     스케줄러 ->> DB: 대기열 n개 ACTIVE 및 만료시간 설정
@@ -30,6 +37,7 @@ loop 특정 시간마다 폴링 요청
     DB -->>- 대기열: 대기열 상태 조회 완료
     대기열 -->>- 사용자: 토큰 정보 응답 [대기 번호 및 상태]
 end
+
 
 ```
 
@@ -72,7 +80,7 @@ sequenceDiagram
   alt 상태가 ACTIVE가 아니면
 			콘서트 -->> 사용자: 조회 실패 응답
   else 상태가 ACTIVE이면
-      콘서트 ->>+ DB: 예약 가능한 좌석 요청
+      콘서트 ->>+ DB: 예약 가능한 좌석 요청 [RESERVABLE]
       DB -->>- 콘서트: 예약 가능한 좌석 응답
       콘서트 -->>- 사용자: 예약 가능한 좌석 응답
   end
@@ -85,16 +93,20 @@ sequenceDiagram
   participant 대기열
   participant 콘서트
   participant DB
+  participant 스케줄러
 
   사용자 ->>+ 콘서트: 좌석 예약 요청
   콘서트 ->>- 대기열: 토큰 조회 요청
   대기열 ->>+ DB: 대기열 상태 조회
   DB -->>- 대기열: 대기열 상태 응답
   대기열 -->>+ 콘서트: 토큰 조회 응답
+  loop 특정 시간마다 스케줄링
+    스케줄러 ->> DB: 예약이 되지 못한 좌석상태 변경 [TEMP->RESERVABLE]
+	end
   alt 상태가 ACTIVE가 아니면
       콘서트 -->>+ 사용자: 좌석 예약 실패 응답
   else 상태가 ACTIVE이면
-  	  콘서트 ->>+ DB: n분간 좌석 임시 배정
+  	  콘서트 ->>+ DB: n분간 좌석 임시 배정 [RESERVABLE->TEMP]
       DB -->>- 콘서트: 좌석 배정 응답
 	  alt 좌석 예약 실패하면
 	    콘서트 -->> 사용자: 좌석 예약 실패 응답
