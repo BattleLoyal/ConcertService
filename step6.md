@@ -15,7 +15,6 @@
 + 콘서트, 콘서트의 날짜별 공연, 공연의 좌석들이 있다.
 + 콘서트와 날짜별 공연 1:N 관계
 + 공연과 좌석 1:N 관계
-+ 콘서트와 1:N 관계를 가진 공연과, 공연과 1:N 관계를 가진 좌석은 전부 모듈화가 필요하다.
 #### 3. 유저
 + 유저의 로그인, 회원가입은 아직 없지만 잔액 조회와 충전이 있다.
 + 잔액은 유저가 들고 있어야 하는 정보라고 생각되어 유저 모듈의 필요성이 있다.
@@ -24,8 +23,7 @@
 
 
 ## ERD 설계
-![콘서트 서비스](https://github.com/user-attachments/assets/cf459887-dee4-4e39-912f-6404ec62c4b2)
-
+![콘서트 서비스](https://github.com/user-attachments/assets/b1afd641-41d2-406a-8f15-824ff7d8d726)
 
 ## API 명세서
 <https://documenter.getpostman.com/view/25072297/2sAXxQfD4T>
