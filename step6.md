@@ -23,7 +23,7 @@
 
 
 ## ERD 설계
-![콘서트 서비스](https://github.com/user-attachments/assets/b1afd641-41d2-406a-8f15-824ff7d8d726)
+![콘서트 서비스 (2)](https://github.com/user-attachments/assets/6788046e-fccd-4432-8a59-4d4ce24ff601)
 
 ## API 명세서
 <https://documenter.getpostman.com/view/25072297/2sAXxQfD4T>
