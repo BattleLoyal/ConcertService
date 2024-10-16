@@ -1,29 +1,39 @@
-import { Controller, Get, Post, Param, Query, Res, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  Query,
+  Res,
+  Body,
+  Headers,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
-
+import { AvailableDatesDto } from './dto/available-dates.dto';
+import { ConcertService } from './concert.service'; // ConcertService 임포트
 @Controller('concert')
 export class ConcertController {
-  @Get(':id/date')
-  getAvailableDates(
-    @Param('id') concertId: string,
-    @Query('date') date: string,
-    @Res() response: Response,
-  ): any {
-    if (concertId && date) {
-      const availableDates = [
-        '2024-10-13',
-        '2024-10-15',
-        '2024-10-18',
-        '2024-10-20',
-      ];
+  constructor(private readonly concertService: ConcertService) {}
 
-      return response.status(200).json({
-        concertId: Number(concertId),
-        availableDates: availableDates,
-      });
-    } else {
-      return response.status(500);
-    }
+  @Get(':id/date')
+  async getAvailableDates(
+    @Param('id') concertId: number,
+    @Query('date') date: string,
+    @Headers('X-Token') token: string,
+    @Res() response: Response,
+  ): Promise<any> {
+    // 서비스 호출
+    const availableDates = await this.concertService.getAvailableDates(
+      concertId,
+      date,
+      token,
+    );
+
+    const responseBody: AvailableDatesDto = {
+      availableDates,
+    };
+
+    return response.status(200).json(responseBody);
   }
 
   @Get(':id/seat')
