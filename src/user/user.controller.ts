@@ -1,34 +1,22 @@
 import { Controller, Patch, Body, Res, Param, Get } from '@nestjs/common';
 import { Response } from 'express';
+import { UserService } from './user.service';
+import { UpdateBalanceDto } from './dto/update-balance.dto';
 
 @Controller('user')
 export class UserController {
+  constructor(private readonly userService: UserService) {}
+
   @Patch(':id/balance')
-  chargeBalance(
-    @Param('id') userId: string,
-    @Body() body: any,
-    @Res() response: Response,
-  ): any {
-    const { amount } = body;
-    if (amount && userId) {
-      return response.status(200).json({
-        userId,
-        newBalance: 3000,
-      });
-    } else {
-      return response.status(500);
-    }
+  async chargeBalance(
+    @Param('id') userId: number,
+    @Body() updateBalanceDto: UpdateBalanceDto,
+  ): Promise<any> {
+    return this.userService.chargeBalance(userId, updateBalanceDto);
   }
 
   @Get(':id/balance')
-  getBalance(@Param('id') userId: string, @Res() response: Response): any {
-    if (userId) {
-      return response.status(200).json({
-        userId,
-        balance: 3000,
-      });
-    } else {
-      return response.status(500);
-    }
+  async getUserBalance(@Param('id') userId: number): Promise<any> {
+    return this.userService.getUserBalance(userId);
   }
 }
