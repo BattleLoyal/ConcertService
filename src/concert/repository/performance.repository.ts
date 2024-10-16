@@ -7,4 +7,9 @@ export interface PerformanceRepository {
     startDate: string,
     manager?: EntityManager,
   ): Promise<Performance[]>;
+  getPerformanceByConcertAndDate(
+    concertId: number,
+    date: string,
+    manager?: EntityManager,
+  ): Promise<Performance | null>;
 }

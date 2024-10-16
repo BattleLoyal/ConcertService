@@ -7,10 +7,14 @@ import {
   Res,
   Body,
   Headers,
+  HttpCode,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AvailableDatesDto } from './dto/available-dates.dto';
 import { ConcertService } from './concert.service'; // ConcertService 임포트
+import { AvailableSeatsDto } from './dto/available-seats.dto';
+import { ReserveSeatDto } from './dto/reserve-seat.dto';
+
 @Controller('concert')
 export class ConcertController {
   constructor(private readonly concertService: ConcertService) {}
@@ -37,41 +41,38 @@ export class ConcertController {
   }
 
   @Get(':id/seat')
-  getAvailableSeats(
-    @Param('id') concertId: string,
+  async getAvailableSeats(
+    @Param('id') concertId: number,
     @Query('date') date: string,
+    @Headers('X-Token') token: string,
     @Res() response: Response,
-  ): any {
-    if (concertId && date) {
-      const availableSeats = [1, 4, 15, 21, 45];
+  ): Promise<any> {
+    const availableSeats = await this.concertService.getAvailableSeats(
+      concertId,
+      date,
+      token,
+    );
 
-      return response.status(200).json({
-        concertId: Number(concertId),
-        availableSeats: availableSeats,
-      });
-    } else {
-      return response.status(500);
-    }
+    const responseBody: AvailableSeatsDto = {
+      concertId,
+      availableSeats,
+    };
+
+    // 응답 반환
+    return response.status(200).json(responseBody);
   }
 
   @Post(':id/reserve-seat')
-  reserveSeat(
-    @Param('id') concertId: string,
-    @Body() body: any,
-    @Res() response: Response,
-  ): any {
-    const { userId, date, seatNumber } = body;
-
-    if (userId && concertId && date && seatNumber) {
-      return response.status(200).json({
-        userId,
-        concertId: Number(concertId),
-        date,
-        seatNumber,
-        tempTime: Date.now(),
-      });
-    } else {
-      return response.status(500);
-    }
+  @HttpCode(200)
+  async reserveSeat(
+    @Param('id') concertId: number,
+    @Body() reserveSeatDto: ReserveSeatDto,
+    @Headers('X-Token') token: string,
+  ): Promise<any> {
+    return await this.concertService.reserveSeat(
+      concertId,
+      reserveSeatDto,
+      token,
+    );
   }
 }

@@ -20,4 +20,17 @@ export class PerformanceRepositoryImpl implements PerformanceRepository {
       .andWhere('performance.date >= :startDate', { startDate })
       .getMany();
   }
+
+  async getPerformanceByConcertAndDate(
+    concertId: number,
+    date: string,
+    manager?: EntityManager,
+  ): Promise<Performance | null> {
+    const performanceManager = manager || this.entityManager;
+    return await performanceManager
+      .createQueryBuilder(Performance, 'performance')
+      .where('performance.concertid = :concertId', { concertId })
+      .andWhere('performance.date = :date', { date })
+      .getOne();
+  }
 }
