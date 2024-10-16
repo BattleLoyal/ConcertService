@@ -26,5 +26,5 @@
 ![콘서트 서비스 (2)](https://github.com/user-attachments/assets/6788046e-fccd-4432-8a59-4d4ce24ff601)
 
 ## API 명세서
-<https://documenter.getpostman.com/view/25072297/2sAXxQfD4T>
+<https://documenter.getpostman.com/view/25072297/2sAXxS8rwD>
 
