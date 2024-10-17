@@ -1,3 +1,6 @@
-export interface AvailableDatesDto {
-  availableDates: string[]; // 예약 가능한 날짜 배열
+import { ApiProperty } from '@nestjs/swagger';
+
+export class AvailableDatesDto {
+  @ApiProperty()
+  availableDates: string[];
 }

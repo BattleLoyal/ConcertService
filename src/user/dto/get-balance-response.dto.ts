@@ -1,8 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class AvailableSeatsDto {
+export class GetBalanceResponseDto {
   @ApiProperty()
-  concertId: number;
+  userId: number;
+
   @ApiProperty()
-  availableSeats: number[];
+  balance: number;
 }

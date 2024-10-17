@@ -1,3 +1,6 @@
-export interface UpdateBalanceDto {
-  amount: number; // 충전할 금액
+import { ApiProperty } from '@nestjs/swagger';
+
+export class UpdateBalanceDto {
+  @ApiProperty()
+  amount: number;
 }

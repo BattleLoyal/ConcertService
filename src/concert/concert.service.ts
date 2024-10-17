@@ -8,6 +8,7 @@ import { QueueRepositoryImpl } from '../queue/repository/queue.repository.impl';
 import { SeatRepositoryImpl } from './repository/seat.repository.impl';
 import { EntityManager } from 'typeorm';
 import { ReserveSeatDto } from './dto/reserve-seat.dto';
+import { ReserveSeatResponseDto } from './dto/reserve-seat-response.dto';
 
 @Injectable()
 export class ConcertService {
@@ -82,7 +83,7 @@ export class ConcertService {
     concertId: number,
     reserveSeatDto: ReserveSeatDto,
     token: string,
-  ): Promise<any> {
+  ): Promise<ReserveSeatResponseDto> {
     const { userId, date, seatNumber } = reserveSeatDto;
 
     return await this.entityManager.transaction(
@@ -114,13 +115,15 @@ export class ConcertService {
           manager,
         );
 
-        return {
+        const result: ReserveSeatResponseDto = {
           userId,
-          concertId,
           date,
           seatNumber,
+          concertId,
           expireTime: expireTime.toLocaleString(),
         };
+
+        return result;
       },
     );
   }

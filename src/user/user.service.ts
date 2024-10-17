@@ -6,6 +6,7 @@ import {
 import { UserRepositoryImpl } from './repository/user.repository.impl';
 import { UpdateBalanceDto } from './dto/update-balance.dto';
 import { EntityManager } from 'typeorm';
+import { ChargeBalanceResponseDto } from './dto/update-balance-response.dto';
 
 @Injectable()
 export class UserService {
@@ -17,7 +18,7 @@ export class UserService {
   async chargeBalance(
     userId: number,
     updateBalanceDto: UpdateBalanceDto,
-  ): Promise<any> {
+  ): Promise<ChargeBalanceResponseDto> {
     const { amount } = updateBalanceDto;
 
     // 금액이 0 이하인 경우 예외 처리
