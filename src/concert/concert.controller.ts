@@ -1,67 +1,142 @@
-import { Controller, Get, Post, Param, Query, Res, Body } from '@nestjs/common';
-import { Request, Response } from 'express';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  Query,
+  Res,
+  Body,
+  Headers,
+  HttpCode,
+} from '@nestjs/common';
+import { Response } from 'express';
+import { AvailableDatesDto } from './dto/available-dates.dto';
+import { ConcertService } from './concert.service';
+import { AvailableSeatsDto } from './dto/available-seats.dto';
+import { ReserveSeatDto } from './dto/reserve-seat.dto';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiBody,
+  ApiResponse,
+  ApiHeader,
+} from '@nestjs/swagger';
+import { ReserveSeatResponseDto } from './dto/reserve-seat-response.dto';
 
+@ApiTags('Concert')
 @Controller('concert')
 export class ConcertController {
-  @Get(':id/date')
-  getAvailableDates(
-    @Param('id') concertId: string,
-    @Query('date') date: string,
-    @Res() response: Response,
-  ): any {
-    if (concertId && date) {
-      const availableDates = [
-        '2024-10-13',
-        '2024-10-15',
-        '2024-10-18',
-        '2024-10-20',
-      ];
+  constructor(private readonly concertService: ConcertService) {}
 
-      return response.status(200).json({
-        concertId: Number(concertId),
-        availableDates: availableDates,
-      });
-    } else {
-      return response.status(500);
-    }
+  @Get(':id/date')
+  @ApiOperation({
+    summary: '예약 가능 날짜 조회',
+    description: '특정 콘서트의 예약 가능 날짜를 조회합니다.',
+  })
+  @ApiParam({ name: 'id', description: '콘서트 ID', example: 1 })
+  @ApiQuery({
+    name: 'date',
+    description: '검색 기준 날짜',
+    required: true,
+    example: '2024-10-17',
+  })
+  @ApiHeader({
+    name: 'X-Token',
+    description: '대기열 토큰',
+    required: true,
+    example: 'UUID-QUEUE:1',
+  })
+  @ApiResponse({
+    status: 200,
+    type: AvailableDatesDto,
+  })
+  async getAvailableDates(
+    @Param('id') concertId: number,
+    @Query('date') date: string,
+    @Headers('X-Token') token: string,
+    @Res() response: Response,
+  ): Promise<any> {
+    // 서비스 호출
+    const availableDates = await this.concertService.getAvailableDates(
+      concertId,
+      date,
+      token,
+    );
+
+    const responseBody: AvailableDatesDto = {
+      availableDates,
+    };
+
+    return response.status(200).json(responseBody);
   }
 
   @Get(':id/seat')
-  getAvailableSeats(
-    @Param('id') concertId: string,
+  @ApiOperation({ summary: '예약 가능한 좌석 조회' })
+  @ApiParam({ name: 'id', description: '콘서트 ID', example: 1 })
+  @ApiQuery({ name: 'date', description: '예약 날짜', example: '2024-10-17' })
+  @ApiHeader({
+    name: 'X-Token',
+    description: '대기열 토큰',
+    required: true,
+    example: 'UUID-QUEUE:1',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '좌석 조회 성공',
+    type: AvailableSeatsDto,
+  })
+  async getAvailableSeats(
+    @Param('id') concertId: number,
     @Query('date') date: string,
+    @Headers('X-Token') token: string,
     @Res() response: Response,
-  ): any {
-    if (concertId && date) {
-      const availableSeats = [1, 4, 15, 21, 45];
+  ): Promise<any> {
+    const availableSeats = await this.concertService.getAvailableSeats(
+      concertId,
+      date,
+      token,
+    );
 
-      return response.status(200).json({
-        concertId: Number(concertId),
-        availableSeats: availableSeats,
-      });
-    } else {
-      return response.status(500);
-    }
+    const responseBody: AvailableSeatsDto = {
+      concertId,
+      availableSeats,
+    };
+
+    // 응답 반환
+    return response.status(200).json(responseBody);
   }
 
   @Post(':id/reserve-seat')
-  reserveSeat(
-    @Param('id') concertId: string,
-    @Body() body: any,
-    @Res() response: Response,
-  ): any {
-    const { userId, date, seatNumber } = body;
-
-    if (userId && concertId && date && seatNumber) {
-      return response.status(200).json({
-        userId,
-        concertId: Number(concertId),
-        date,
-        seatNumber,
-        tempTime: Date.now(),
-      });
-    } else {
-      return response.status(500);
-    }
+  @HttpCode(200)
+  @ApiOperation({
+    summary: '좌석 임시 예약',
+    description: '좌석을 5분간 임시로 예약합니다.',
+  })
+  @ApiParam({ name: 'id', description: '콘서트 ID', example: 1 })
+  @ApiQuery({ name: 'date', description: '예약할 날짜', example: '2024-10-17' })
+  @ApiHeader({
+    name: 'X-Token',
+    description: '대기열 토큰',
+    required: true,
+    example: 'UUID-QUEUE:1',
+  })
+  @ApiBody({ type: ReserveSeatDto })
+  @ApiResponse({
+    status: 200,
+    description: '좌석 임시 예약 성공',
+    type: ReserveSeatResponseDto,
+  })
+  async reserveSeat(
+    @Param('id') concertId: number,
+    @Body() reserveSeatDto: ReserveSeatDto,
+    @Headers('X-Token') token: string,
+  ): Promise<ReserveSeatResponseDto> {
+    return await this.concertService.reserveSeat(
+      concertId,
+      reserveSeatDto,
+      token,
+    );
   }
 }
