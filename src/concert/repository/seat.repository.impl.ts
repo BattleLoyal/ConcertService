@@ -39,4 +39,39 @@ export class SeatRepositoryImpl implements SeatRepository {
       .andWhere('seat.status = :status', { status: 'RESERVABLE' })
       .execute();
   }
+
+  // 좌석 상태 업데이트
+  async updateSeatStatus(
+    seatId: number,
+    status: string,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const entryManager = manager || this.entityManager;
+    await entryManager
+      .createQueryBuilder()
+      .update('seat')
+      .set({ status })
+      .where('seatid = :seatId', { seatId })
+      .execute();
+  }
+
+  // 임시 예약된 좌석 확인
+  async getTempReservedSeat(
+    performanceId: number,
+    seatNumber: number,
+    userId: number,
+    manager?: EntityManager,
+  ): Promise<any> {
+    const entryManager = manager || this.entityManager;
+    const currentTime = new Date();
+
+    return await entryManager
+      .createQueryBuilder('seat', 'seat')
+      .where('seat.performanceId = :performanceId', { performanceId })
+      .andWhere('seat.seatnumber = :seatNumber', { seatNumber })
+      .andWhere('seat.userId = :userId', { userId })
+      .andWhere('seat.status = :status', { status: 'TEMP' })
+      .andWhere('seat.expire > :currentTime', { currentTime })
+      .getOne();
+  }
 }

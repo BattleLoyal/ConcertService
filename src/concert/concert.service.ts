@@ -119,7 +119,7 @@ export class ConcertService {
           concertId,
           date,
           seatNumber,
-          expireTime,
+          expireTime: expireTime.toLocaleString(),
         };
       },
     );

@@ -1,5 +1,4 @@
-import { Controller, Patch, Body, Res, Param, Get } from '@nestjs/common';
-import { Response } from 'express';
+import { Controller, Patch, Body, Param, Get } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UpdateBalanceDto } from './dto/update-balance.dto';
 

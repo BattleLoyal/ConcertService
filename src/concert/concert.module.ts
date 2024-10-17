@@ -8,15 +8,20 @@ import { PerformanceRepositoryImpl } from './repository/performance.repository.i
 import { QueueRepositoryImpl } from '../queue/repository/queue.repository.impl';
 import { Seat } from './entity/seat.entity';
 import { SeatRepositoryImpl } from './repository/seat.repository.impl';
+import { Reservation } from './entity/reservation.entity';
+import { ReservationRepositoryImpl } from './repository/reservation.repository.impl';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Concert, Performance, Seat])],
+  imports: [
+    TypeOrmModule.forFeature([Concert, Performance, Seat, Reservation]),
+  ],
   controllers: [ConcertController],
   providers: [
     ConcertService,
     PerformanceRepositoryImpl,
     QueueRepositoryImpl,
     SeatRepositoryImpl,
+    ReservationRepositoryImpl,
   ],
 })
 export class ConcertModule {}

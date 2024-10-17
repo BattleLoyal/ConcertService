@@ -12,4 +12,15 @@ export interface SeatRepository {
     expire: Date,
     manager?: EntityManager,
   ): Promise<void>;
+  updateSeatStatus(
+    seatId: number,
+    status: string,
+    manager?: EntityManager,
+  ): Promise<void>;
+  getTempReservedSeat(
+    performanceId: number,
+    seatNumber: number,
+    userId: number,
+    manager?: EntityManager,
+  ): Promise<any>;
 }

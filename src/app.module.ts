@@ -27,6 +27,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
       database: process.env.DB_DATABASE,
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
+      timezone: '+09:00',
     }),
   ],
   controllers: [AppController],

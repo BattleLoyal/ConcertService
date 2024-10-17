@@ -1,9 +1,5 @@
 // src/queue/repository/queue.repository.impl.ts
-import {
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { Queue } from '../entity/queue.entity';
 import { QueueRepository } from './queue.repository';
@@ -12,6 +8,7 @@ import { QueueDataDto } from '../dto/position-response.dto';
 @Injectable()
 export class QueueRepositoryImpl implements QueueRepository {
   constructor(private readonly entityManager: EntityManager) {}
+
   async insertQueueEntry(
     userId: number,
     uuid: string,
@@ -67,5 +64,20 @@ export class QueueRepositoryImpl implements QueueRepository {
       .getOne();
 
     return !!queueEntry;
+  }
+
+  // 토큰 상태 업데이트
+  async updateTokenState(
+    uuid: string,
+    newState: string,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const entryManager = manager || this.entityManager;
+    await entryManager
+      .createQueryBuilder()
+      .update('queue')
+      .set({ status: newState })
+      .where('UUID = :uuid', { uuid })
+      .execute();
   }
 }

@@ -11,4 +11,9 @@ export interface QueueRepository {
   ): Promise<Queue>;
   getQueuePositionByUUID(uuid: string): Promise<QueueDataDto>;
   isTokenActive(uuid: string): Promise<boolean>;
+  updateTokenState(
+    uuid: string,
+    newState: string,
+    manager?: EntityManager,
+  ): Promise<void>;
 }

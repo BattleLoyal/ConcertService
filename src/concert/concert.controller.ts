@@ -9,7 +9,7 @@ import {
   Headers,
   HttpCode,
 } from '@nestjs/common';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { AvailableDatesDto } from './dto/available-dates.dto';
 import { ConcertService } from './concert.service'; // ConcertService 임포트
 import { AvailableSeatsDto } from './dto/available-seats.dto';
