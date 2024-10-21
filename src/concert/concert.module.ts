@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConcertController } from './concert.controller';
-import { ConcertService } from './concert.service';
+import { ConcertController } from './controller/concert.controller';
+import { ConcertService } from './service/concert.service';
 import { Concert } from './entity/concert.entity';
 import { Performance } from './entity/performance.entity';
 import { PerformanceRepositoryImpl } from './repository/performance.repository.impl';

@@ -4,12 +4,12 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { UserRepositoryImpl } from '../user/repository/user.repository.impl';
-import { SeatRepositoryImpl } from '../concert/repository/seat.repository.impl';
-import { QueueRepositoryImpl } from '../queue/repository/queue.repository.impl';
-import { ReservationRepositoryImpl } from '../concert/repository/reservation.repository.impl';
-import { PaymentRepositoryImpl } from './repository/payment.repository.impl';
-import { CreatePaymentDto } from './dto/create-payment.dto';
+import { UserRepositoryImpl } from '../../user/repository/user.repository.impl';
+import { SeatRepositoryImpl } from '../../concert/repository/seat.repository.impl';
+import { QueueRepositoryImpl } from '../../queue/repository/queue.repository.impl';
+import { ReservationRepositoryImpl } from '../../concert/repository/reservation.repository.impl';
+import { PaymentRepositoryImpl } from '../repository/payment.repository.impl';
+import { CreatePaymentDto } from '../dto/create-payment.dto';
 import { EntityManager } from 'typeorm';
 import { PerformanceRepositoryImpl } from 'src/concert/repository/performance.repository.impl';
 

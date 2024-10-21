@@ -3,12 +3,12 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { PerformanceRepositoryImpl } from './repository/performance.repository.impl';
-import { QueueRepositoryImpl } from '../queue/repository/queue.repository.impl';
-import { SeatRepositoryImpl } from './repository/seat.repository.impl';
+import { PerformanceRepositoryImpl } from '../repository/performance.repository.impl';
+import { QueueRepositoryImpl } from 'src/queue/repository/queue.repository.impl';
+import { SeatRepositoryImpl } from '../repository/seat.repository.impl';
 import { EntityManager } from 'typeorm';
-import { ReserveSeatDto } from './dto/reserve-seat.dto';
-import { ReserveSeatResponseDto } from './dto/reserve-seat-response.dto';
+import { ReserveSeatDto } from '../dto/reserve-seat.dto';
+import { ReserveSeatResponseDto } from '../dto/reserve-seat-response.dto';
 
 @Injectable()
 export class ConcertService {

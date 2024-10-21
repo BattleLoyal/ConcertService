@@ -1,6 +1,6 @@
 import { Controller, Post, Headers, Body } from '@nestjs/common';
-import { PaymentService } from './payment.service';
-import { CreatePaymentDto } from './dto/create-payment.dto';
+import { PaymentService } from '../service/payment.service';
+import { CreatePaymentDto } from '../dto/create-payment.dto';
 import {
   ApiTags,
   ApiOperation,

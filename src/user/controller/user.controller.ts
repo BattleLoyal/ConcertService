@@ -1,6 +1,6 @@
 import { Controller, Patch, Body, Param, Get } from '@nestjs/common';
-import { UserService } from './user.service';
-import { UpdateBalanceDto } from './dto/update-balance.dto';
+import { UserService } from '../service/user.service';
+import { UpdateBalanceDto } from '../dto/update-balance.dto';
 import {
   ApiTags,
   ApiOperation,
@@ -8,8 +8,8 @@ import {
   ApiBody,
   ApiResponse,
 } from '@nestjs/swagger';
-import { ChargeBalanceResponseDto } from './dto/update-balance-response.dto';
-import { GetBalanceResponseDto } from './dto/get-balance-response.dto';
+import { ChargeBalanceResponseDto } from '../dto/update-balance-response.dto';
+import { GetBalanceResponseDto } from '../dto/get-balance-response.dto';
 
 @ApiTags('User')
 @Controller('user')

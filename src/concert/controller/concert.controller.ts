@@ -10,10 +10,10 @@ import {
   HttpCode,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { AvailableDatesDto } from './dto/available-dates.dto';
-import { ConcertService } from './concert.service';
-import { AvailableSeatsDto } from './dto/available-seats.dto';
-import { ReserveSeatDto } from './dto/reserve-seat.dto';
+import { AvailableDatesDto } from '../dto/available-dates.dto';
+import { ConcertService } from '../service/concert.service';
+import { AvailableSeatsDto } from '../dto/available-seats.dto';
+import { ReserveSeatDto } from '../dto/reserve-seat.dto';
 import {
   ApiTags,
   ApiOperation,
@@ -23,7 +23,7 @@ import {
   ApiResponse,
   ApiHeader,
 } from '@nestjs/swagger';
-import { ReserveSeatResponseDto } from './dto/reserve-seat-response.dto';
+import { ReserveSeatResponseDto } from '../dto/reserve-seat-response.dto';
 
 @ApiTags('Concert')
 @Controller('concert')

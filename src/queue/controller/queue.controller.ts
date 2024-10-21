@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Post, Req, Res, Headers } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { QueueService } from './queue.service';
-import { CreateTokenDto } from './dto/create-token.dto';
+import { QueueService } from '../service/queue.service';
+import { CreateTokenDto } from '../dto/create-token.dto';
 import {
   ApiTags,
   ApiOperation,

@@ -3,10 +3,10 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { UserRepositoryImpl } from './repository/user.repository.impl';
-import { UpdateBalanceDto } from './dto/update-balance.dto';
+import { UserRepositoryImpl } from '../repository/user.repository.impl';
+import { UpdateBalanceDto } from '../dto/update-balance.dto';
 import { EntityManager } from 'typeorm';
-import { ChargeBalanceResponseDto } from './dto/update-balance-response.dto';
+import { ChargeBalanceResponseDto } from '../dto/update-balance-response.dto';
 
 @Injectable()
 export class UserService {
