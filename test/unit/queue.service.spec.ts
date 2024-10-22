@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { QueueService } from 'src/queue/service/queue.service';
+import { QueueService } from 'src/queue/application/queue.service';
 
 describe('QueueService', () => {
   let service: QueueService;
