@@ -9,7 +9,7 @@ export class PerformanceRepositoryImpl implements PerformanceRepository {
 
   async getAvailableDates(
     concertId: number,
-    startDate: string,
+    startDate: Date,
     manager?: EntityManager,
   ): Promise<Performance[]> {
     const performanceManager = manager || this.entityManager;
@@ -17,7 +17,7 @@ export class PerformanceRepositoryImpl implements PerformanceRepository {
     return await performanceManager
       .createQueryBuilder(Performance, 'performance')
       .where('performance.concertid = :concertId', { concertId })
-      .andWhere('performance.date >= :startDate', { startDate })
+      .andWhere('DATE(performance.date) >= DATE(:startDate)', { startDate })
       .getMany();
   }
 

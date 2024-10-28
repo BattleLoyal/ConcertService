@@ -55,10 +55,10 @@ export class ConcertController {
     type: AvailableDatesResponseDto,
   })
   async getAvailableDates(
-    @Body() params: AvailableDatesRequestDto,
+    @Param('id') concertId: number,
+    @Query('date') date: string,
     @Headers('X-Token') token: string,
   ): Promise<AvailableDatesResponseDto> {
-    const { concertId, date } = params;
     const availableDates = await this.concertService.getAvailableDates(
       concertId,
       date,
@@ -86,10 +86,10 @@ export class ConcertController {
     type: AvailableSeatsResponseDto,
   })
   async getAvailableSeats(
-    @Body() params: AvailableSeatsRequestDto,
+    @Param('id') concertId: number,
+    @Query('date') date: string,
     @Headers('X-Token') token: string,
   ): Promise<AvailableSeatsResponseDto> {
-    const { concertId, date } = params;
     const availableSeats = await this.concertService.getAvailableSeats(
       concertId,
       date,
@@ -120,9 +120,11 @@ export class ConcertController {
     type: ReserveSeatResponseDto,
   })
   async reserveSeat(
+    @Param('id') concertId: number,
     @Body() reserveSeatDto: ReserveSeatRequestDto,
     @Headers('X-Token') token: string,
   ): Promise<ReserveSeatResponseDto> {
+    reserveSeatDto.concertId = concertId;
     return await this.concertService.reserveSeat(reserveSeatDto, token);
   }
 }

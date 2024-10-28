@@ -7,6 +7,7 @@ import { PaymentModule } from './payment/payment.module';
 import { QueueModule } from './queue/queue.module';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { SchedulerModule } from './scheduler/scheduler.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     ConcertModule,
     PaymentModule,
     QueueModule,
+    SchedulerModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',

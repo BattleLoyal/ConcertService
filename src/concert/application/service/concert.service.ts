@@ -31,10 +31,12 @@ export class ConcertService {
       throw new UnauthorizedException('Token is not active.');
     }
 
+    const parsedDate = new Date(startDate);
+
     // 예약 가능한 날짜 조회를 위해 PerformanceRepository 호출
     const performances = await this.performanceRepository.getAvailableDates(
       concertId,
-      startDate,
+      parsedDate,
     );
 
     if (!performances.length) {

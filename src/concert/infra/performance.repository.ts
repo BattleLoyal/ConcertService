@@ -4,7 +4,7 @@ import { EntityManager } from 'typeorm';
 export interface PerformanceRepository {
   getAvailableDates(
     concertId: number,
-    startDate: string,
+    startDate: Date,
     manager?: EntityManager,
   ): Promise<Performance[]>;
   getPerformanceByConcertAndDate(
