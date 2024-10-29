@@ -67,7 +67,7 @@ export class ConcertService {
         date,
       );
     if (!performance) {
-      throw new NotFoundException('Performance not found for the given date.');
+      throw new NotFoundException('해당 날짜의 공연을 찾을 수 없습니다.');
     }
 
     // 해당 공연에 예약 가능한 좌석 조회

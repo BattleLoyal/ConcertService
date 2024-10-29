@@ -23,7 +23,7 @@ export class SchedulerService {
     this.seatSchedulerRepository = new SeatSchedulerRepository(seatRepository);
   }
 
-  // 10분마다
+  // 1분마다
   @Cron(CronExpression.EVERY_MINUTE)
   async activateQueueTokens() {
     try {
@@ -40,7 +40,7 @@ export class SchedulerService {
     }
   }
 
-  // 1분마다 실행
+  // 1분마다
   @Cron(CronExpression.EVERY_MINUTE)
   async expireOldActiveTokens() {
     try {
@@ -57,10 +57,9 @@ export class SchedulerService {
     }
   }
 
-  // SeatScheduler 기능 추가
-  @Cron(CronExpression.EVERY_MINUTE) // 매 1분마다 실행
+  // 1분마다
+  @Cron(CronExpression.EVERY_MINUTE)
   async resetExpiredSeats() {
-    this.logger.log('Checking for expired TEMP seats...');
     try {
       const expiredSeats = await this.seatSchedulerRepository.findExpiredTempSeats();
 
@@ -68,12 +67,10 @@ export class SchedulerService {
         await this.seatSchedulerRepository.resetExpiredTempSeats(
           expiredSeats.map((seat) => seat.seatid),
         );
-        this.logger.log(`Reset ${expiredSeats.length} expired TEMP seats to RESERVABLE.`);
-      } else {
-        this.logger.log('No expired TEMP seats found.');
+        this.logger.log(`${expiredSeats.length}만큼의 만료된 임시 예약 좌석을 예약 가능상태로 변경합니다.`);
       }
     } catch (error) {
-      this.logger.error('Failed to reset expired TEMP seats', error);
+      this.logger.error('임시 예약 좌석 만료 스케쥴러 실패', error);
     }
   }
 }
