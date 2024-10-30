@@ -12,7 +12,8 @@ export class SeatSchedulerRepository {
   }
 
   async resetExpiredTempSeats(seatIds: number[]): Promise<void> {
-    await this.repository.createQueryBuilder()
+    await this.repository
+      .createQueryBuilder()
       .update(Seat)
       .set({ status: 'RESERVABLE', expire: null }) // 다시 예약 가능으로 변경
       .whereInIds(seatIds)

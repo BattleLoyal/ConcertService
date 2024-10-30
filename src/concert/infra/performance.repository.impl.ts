@@ -33,4 +33,9 @@ export class PerformanceRepositoryImpl implements PerformanceRepository {
       .andWhere('performance.date = :date', { date })
       .getOne();
   }
+
+  async savePerformance(performData: Partial<Performance>): Promise<Performance> {
+    const perform = this.entityManager.create(Performance, performData);
+    return await this.entityManager.save(perform);
+  }
 }

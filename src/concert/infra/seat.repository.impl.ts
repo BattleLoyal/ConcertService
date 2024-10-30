@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { EntityManager } from 'typeorm';
+import { Injectable, ConflictException } from '@nestjs/common';
+import { EntityManager, OptimisticLockVersionMismatchError } from 'typeorm';
 import { Seat } from '../domain/entity/seat.entity';
 import { SeatRepository } from './seat.repository';
 
@@ -73,5 +73,52 @@ export class SeatRepositoryImpl implements SeatRepository {
       .andWhere('seat.status = :status', { status: 'TEMP' })
       .andWhere('seat.expire > :currentTime', { currentTime })
       .getOne();
+  }
+
+  // 좌석 조회 - 예약 가능한 상태인지 확인
+  async findOneByPerformanceAndSeatNumber(
+    performanceId: number,
+    seatNumber: number,
+    manager?: EntityManager,
+  ): Promise<Seat | null> {
+    const entryManager = manager || this.entityManager;
+      return await entryManager.findOne(Seat, {
+          where: { performanceId, seatnumber: seatNumber, status: 'RESERVABLE' },
+      });
+  }
+
+  async findOneWithOptimisticLock(
+    seatNumber: number,
+    performanceId: number,
+    version: number,
+    manager?: EntityManager,
+  ): Promise<Seat | null> {
+    const entryManager = manager || this.entityManager;
+      return await entryManager.findOne(Seat, {
+          where: { seatnumber: seatNumber, performanceId, status: 'RESERVABLE' },
+          lock: { mode: 'optimistic', version },
+      });
+  }
+
+  // 낙관적 락을 사용하여 좌석 예약 상태 업데이트
+  async reserveSeatWithOptimisticLock(
+    seat: Seat,
+    manager?: EntityManager,
+  ): Promise<Seat | null> {
+    try {
+      const entryManager = manager || this.entityManager;
+      return await entryManager.save(seat);
+    }
+    catch (error) {
+      if (error instanceof OptimisticLockVersionMismatchError) {
+          throw new ConflictException('다른 사용자가 이미 예약했습니다.');
+      }
+      throw error;
+    }
+  }
+
+  async saveSeat(seatData: Partial<Seat>): Promise<Seat> {
+    const seat = this.entityManager.create(Seat, seatData);
+    return await this.entityManager.save(seat);
   }
 }

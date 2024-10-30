@@ -30,6 +30,9 @@ import { SchedulerModule } from './scheduler/scheduler.module';
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
       timezone: '+09:00',
+      extra: {
+        connectionLimit: 20, // 커넥션 풀 크기 설정
+      },
     }),
   ],
   controllers: [AppController],

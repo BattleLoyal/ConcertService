@@ -19,15 +19,18 @@ export class SchedulerService {
     @InjectRepository(Seat)
     private readonly seatRepository: Repository<Seat>,
   ) {
-    this.queueSchedulerRepository = new QueueSchedulerRepository(queueRepository);
+    this.queueSchedulerRepository = new QueueSchedulerRepository(
+      queueRepository,
+    );
     this.seatSchedulerRepository = new SeatSchedulerRepository(seatRepository);
   }
 
   // 1분마다
-  @Cron(CronExpression.EVERY_MINUTE)
+  //@Cron(CronExpression.EVERY_MINUTE)
   async activateQueueTokens() {
     try {
-      const waitingTokens = await this.queueSchedulerRepository.findWaitingTokens(50);
+      const waitingTokens =
+        await this.queueSchedulerRepository.findWaitingTokens(50);
 
       if (waitingTokens.length > 0) {
         await this.queueSchedulerRepository.activateTokens(
@@ -41,10 +44,11 @@ export class SchedulerService {
   }
 
   // 1분마다
-  @Cron(CronExpression.EVERY_MINUTE)
+  //@Cron(CronExpression.EVERY_MINUTE)
   async expireOldActiveTokens() {
     try {
-      const expiredTokens = await this.queueSchedulerRepository.findExpiredActiveTokens();
+      const expiredTokens =
+        await this.queueSchedulerRepository.findExpiredActiveTokens();
 
       if (expiredTokens.length > 0) {
         await this.queueSchedulerRepository.expireTokens(
@@ -58,16 +62,19 @@ export class SchedulerService {
   }
 
   // 1분마다
-  @Cron(CronExpression.EVERY_MINUTE)
+  //@Cron(CronExpression.EVERY_MINUTE)
   async resetExpiredSeats() {
     try {
-      const expiredSeats = await this.seatSchedulerRepository.findExpiredTempSeats();
+      const expiredSeats =
+        await this.seatSchedulerRepository.findExpiredTempSeats();
 
       if (expiredSeats.length > 0) {
         await this.seatSchedulerRepository.resetExpiredTempSeats(
           expiredSeats.map((seat) => seat.seatid),
         );
-        this.logger.log(`${expiredSeats.length}만큼의 만료된 임시 예약 좌석을 예약 가능상태로 변경합니다.`);
+        this.logger.log(
+          `${expiredSeats.length}만큼의 만료된 임시 예약 좌석을 예약 가능상태로 변경합니다.`,
+        );
       }
     } catch (error) {
       this.logger.error('임시 예약 좌석 만료 스케쥴러 실패', error);

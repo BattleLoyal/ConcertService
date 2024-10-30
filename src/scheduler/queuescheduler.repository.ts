@@ -14,7 +14,8 @@ export class QueueSchedulerRepository {
 
   async activateTokens(tokenIds: number[]): Promise<void> {
     const currentTime = new Date();
-    await this.repository.createQueryBuilder()
+    await this.repository
+      .createQueryBuilder()
       .update(Queue)
       .set({ status: 'ACTIVE', activatedtime: currentTime })
       .whereInIds(tokenIds)
@@ -29,7 +30,8 @@ export class QueueSchedulerRepository {
   }
 
   async expireTokens(tokenIds: number[]): Promise<void> {
-    await this.repository.createQueryBuilder()
+    await this.repository
+      .createQueryBuilder()
       .update(Queue)
       .set({ status: 'EXPIRE' })
       .whereInIds(tokenIds)
