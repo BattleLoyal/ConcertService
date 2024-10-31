@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, VersionColumn } from 'typeorm';
 
 @Entity('user')
 export class User {
@@ -7,4 +7,7 @@ export class User {
 
   @Column()
   balance: number;
+
+  @VersionColumn()
+  version: number;
 }

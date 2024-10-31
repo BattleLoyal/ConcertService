@@ -2,11 +2,13 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { UserRepositoryImpl } from '../infra/user.repository.impl';
 import { UpdateBalanceDto } from '../interface/dto/update-balance.dto';
 import { EntityManager } from 'typeorm';
 import { ChargeBalanceResponseDto } from '../interface/dto/update-balance-response.dto';
+import { User } from '../domain/entity/user.entity';
 
 @Injectable()
 export class UserService {
@@ -61,5 +63,40 @@ export class UserService {
       userId: user.userId,
       balance: user.balance,
     };
+  }
+
+  async chargeBalanceWithOptimisticLock(
+    userId: number,
+    amount: number,
+  ): Promise<ChargeBalanceResponseDto> {
+    // 사용자 조회
+    const user = await this.userRepository.findOne({
+      where: { userId },
+    });
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+
+    try {
+      // 낙관적 락 포인트 충전
+      const updateResult = await this.userRepository.update(
+        { userId: user.userId, version: user.version },
+        { balance: user.balance + amount, version: user.version + 1 },
+      );
+
+      // 업데이트된 행이 없으면 충돌이 발생한 것
+      if (updateResult.affected === 0) {
+        throw new ConflictException(
+          '동시에 포인트를 충전하는 요청이 있습니다.',
+        );
+      }
+
+      return { userId: user.userId, newBalance: user.balance + amount };
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw error;
+      }
+      throw new Error('포인트 충전 중 문제가 발생했습니다.');
+    }
   }
 }

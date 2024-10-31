@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ConcertService } from 'src/concert/application/service/concert.service';
 import {
   getRepositoryToken,
@@ -14,6 +14,7 @@ import { DataSource, Repository, EntityManager } from 'typeorm';
 import { PerformanceRepositoryImpl } from 'src/concert/infra/performance.repository.impl';
 import { QueueRepositoryImpl } from 'src/queue/infra/queue.repository.impl';
 import { SeatRepositoryImpl } from 'src/concert/infra/seat.repository.impl';
+import { getDBConfig } from 'src/common/config/database.config';
 
 describe('콘서트 통합 테스트', () => {
   let service: ConcertService;
@@ -30,20 +31,10 @@ describe('콘서트 통합 테스트', () => {
           isGlobal: true,
           envFilePath: '.env',
         }),
-        TypeOrmModule.forRoot({
-          type: 'mysql',
-          host: process.env.DB_HOST,
-          port: parseInt(process.env.DB_PORT, 10),
-          username: process.env.DB_USERNAME,
-          password: process.env.DB_PASSWORD,
-          database: process.env.DB_DATABASE,
-          entities: [Seat, Performance, Queue, Concert],
-          synchronize: true,
-          timezone: '+09:00',
-          extra: {
-            connectionLimit: 20,
-          },
-          //logging: true,
+        TypeOrmModule.forRootAsync({
+          imports: [ConfigModule],
+          inject: [ConfigService],
+          useFactory: getDBConfig,
         }),
         TypeOrmModule.forFeature([Seat, Performance, Queue, Concert]),
       ],
