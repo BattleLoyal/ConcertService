@@ -1,18 +1,21 @@
 import { Injectable } from '@nestjs/common';
-import { EntityManager } from 'typeorm';
+import { EntityManager, UpdateResult } from 'typeorm';
 import { User } from '../domain/entity/user.entity';
 import { UserRepository } from './user.repository';
+import { DataSource } from 'typeorm';
 
 @Injectable()
-export class UserRepositoryImpl implements UserRepository {
-  constructor(private readonly entityManager: EntityManager) {}
+export class UserRepositoryImpl extends UserRepository {
+  constructor(private dataSource: DataSource) {
+    super(User, dataSource.createEntityManager());
+  }
 
   // 유저를 ID로 조회 (EntityManager 선택적 사용)
   async findUserById(
     userId: number,
     manager?: EntityManager,
   ): Promise<User | null> {
-    const entity = manager || this.entityManager; // 매니저가 있으면 사용, 없으면 기본 entityManager 사용
+    const entity = manager || this.manager; // 매니저가 있으면 사용, 없으면 기본 entityManager 사용
     return await entity
       .createQueryBuilder(User, 'user')
       .where('user.userId = :userId', { userId })
@@ -24,9 +27,9 @@ export class UserRepositoryImpl implements UserRepository {
     userId: number,
     newBalance: number,
     manager?: EntityManager,
-  ): Promise<void> {
-    const entity = manager || this.entityManager; // 매니저가 있으면 사용, 없으면 기본 entityManager 사용
-    await entity
+  ): Promise<UpdateResult | void> {
+    const entity = manager || this.manager; // 매니저가 있으면 사용, 없으면 기본 entityManager 사용
+    return await entity
       .createQueryBuilder()
       .update(User)
       .set({ balance: newBalance })
@@ -40,12 +43,26 @@ export class UserRepositoryImpl implements UserRepository {
     amount: number,
     manager?: EntityManager,
   ): Promise<void> {
-    const entity = manager || this.entityManager; // 매니저가 있으면 사용, 없으면 기본 entityManager 사용
+    const entity = manager || this.manager; // 매니저가 있으면 사용, 없으면 기본 entityManager 사용
     await entity
       .createQueryBuilder()
       .update(User)
       .set({ balance: () => `balance + ${amount}` }) // 기존 잔액에 추가
       .where('userId = :userId', { userId })
       .execute();
+  }
+
+  async updateUserBalanceWithOptimisticLock(
+    userId: number,
+    amount: number,
+    version: number,
+    manager: EntityManager,
+  ): Promise<boolean> {
+    const result = await manager.update(
+      User,
+      { userId, version },
+      { balance: () => `balance - ${amount}`, version: version + 1 },
+    );
+    return result.affected > 0;
   }
 }

@@ -34,7 +34,9 @@ export class PerformanceRepositoryImpl implements PerformanceRepository {
       .getOne();
   }
 
-  async savePerformance(performData: Partial<Performance>): Promise<Performance> {
+  async savePerformance(
+    performData: Partial<Performance>,
+  ): Promise<Performance> {
     const perform = this.entityManager.create(Performance, performData);
     return await this.entityManager.save(perform);
   }

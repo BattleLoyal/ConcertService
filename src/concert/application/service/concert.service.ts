@@ -7,7 +7,11 @@ import {
 import { PerformanceRepositoryImpl } from '../../infra/performance.repository.impl';
 import { QueueRepositoryImpl } from 'src/queue/infra/queue.repository.impl';
 import { SeatRepositoryImpl } from '../../infra/seat.repository.impl';
-import { EntityManager, DataSource, OptimisticLockVersionMismatchError  } from 'typeorm';
+import {
+  EntityManager,
+  DataSource,
+  OptimisticLockVersionMismatchError,
+} from 'typeorm';
 import { ReserveSeatResponseDto } from 'src/concert/interface/dto/response/reserve-seat-response.dto';
 import { ReserveSeatRequestDto } from 'src/concert/interface/dto/request/reserve-seat-request.dto';
 
@@ -131,37 +135,95 @@ export class ConcertService {
     );
   }
 
+  // 좌석 예약 - 낙관적 락
   async reserveSeatWithOptimisticLock(
     reserveSeatDto: ReserveSeatRequestDto,
     token: string,
   ): Promise<ReserveSeatResponseDto> {
-    return await this.dataSource.transaction(async (manager) => {
-      const { concertId, userId, date, seatNumber } = reserveSeatDto;
 
-      // 토큰 상태 확인
-      const [uuid] = token.split('-QUEUE:');
-      const isActive = await this.queueRepository.isTokenActive(uuid);
-      if (!isActive) {
-        throw new UnauthorizedException('대기열에 활성화되지 않았습니다.');
-      }
+    const { concertId, userId, date, seatNumber } = reserveSeatDto;
 
-      // 콘서트 ID와 날짜로 공연 아이디 가져오기
-      const performance =
-        await this.performanceRepository.getPerformanceByConcertAndDate(
-          concertId,
-          date,
+    // 토큰 상태 확인
+    const [uuid] = token.split('-QUEUE:');
+    const isActive = await this.queueRepository.isTokenActive(uuid);
+    if (!isActive) {
+      throw new UnauthorizedException('대기열에 활성화되지 않았습니다.');
+    }
+
+    // 콘서트 ID와 날짜로 공연 아이디 가져오기
+    const performance =
+      await this.performanceRepository.getPerformanceByConcertAndDate(
+        concertId,
+        date,
+      );
+    if (!performance) {
+      throw new NotFoundException('해당 날짜의 공연을 찾을 수 없습니다.');
+    }
+
+    // 좌석 조회 - 예약 가능 상태 확인
+    const seat = await this.seatRepository.findOneByPerformanceAndSeatNumber(
+      performance.performanceid,
+      seatNumber,
+    );
+    if (!seat || seat.status !== 'RESERVABLE') {
+      throw new ConflictException('해당 좌석은 예약할 수 없습니다.');
+    }
+
+    // 5분 동안 임시 예약 설정
+    const expireTime = new Date();
+    expireTime.setMinutes(expireTime.getMinutes() + 5);
+
+    // 좌석 정보 업데이트
+    seat.status = 'TEMP'; // 임시 예약
+    seat.userId = userId;
+    seat.expire = expireTime;
+
+    // 낙관적 락을 적용하여 상태 업데이트
+    await this.seatRepository.reserveSeatWithOptimisticLock(seat);
+
+    const result: ReserveSeatResponseDto = {
+      userId,
+      date,
+      seatNumber,
+      concertId,
+      expire: expireTime.toLocaleString(),
+    };
+
+    return result;
+  }
+
+  // 좌석 예약 - 비관적 락
+  async reserveSeatWithPessimisticLock(
+    reserveSeatDto: ReserveSeatRequestDto,
+    token: string,
+  ): Promise<ReserveSeatResponseDto> {
+    const { concertId, userId, date, seatNumber } = reserveSeatDto;
+
+    // 토큰 상태 확인
+    const [uuid] = token.split('-QUEUE:');
+    const isActive = await this.queueRepository.isTokenActive(uuid);
+    if (!isActive) {
+      throw new UnauthorizedException('대기열에 활성화되지 않았습니다.');
+    }
+
+    // 콘서트 ID와 날짜로 공연 아이디 가져오기
+    const performance =
+      await this.performanceRepository.getPerformanceByConcertAndDate(
+        concertId,
+        date,
+      );
+    if (!performance) {
+      throw new NotFoundException('해당 날짜의 공연을 찾을 수 없습니다.');
+    }
+
+    // 비관적 락으로 잠금
+    return await this.entityManager.transaction(async (manager) => {
+      const seat =
+        await this.seatRepository.findOneByPerformanceAndSeatNumberWithLock(
+          performance.performanceid,
+          seatNumber,
           manager,
         );
-      if (!performance) {
-        throw new NotFoundException('해당 날짜의 공연을 찾을 수 없습니다.');
-      }
-
-      // 좌석 조회 - 예약 가능 상태 확인
-      const seat = await this.seatRepository.findOneByPerformanceAndSeatNumber(
-        performance.performanceid,
-        seatNumber,
-        manager,
-      );
       if (!seat || seat.status !== 'RESERVABLE') {
         throw new ConflictException('해당 좌석은 예약할 수 없습니다.');
       }
@@ -175,8 +237,8 @@ export class ConcertService {
       seat.userId = userId;
       seat.expire = expireTime;
 
-      // 낙관적 락을 적용하여 상태 업데이트
-      await this.seatRepository.reserveSeatWithOptimisticLock(seat, manager);
+      // 좌석 정보 저장
+      await manager.save(seat);
 
       const result: ReserveSeatResponseDto = {
         userId,

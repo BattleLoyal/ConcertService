@@ -10,3 +10,4 @@ module.exports = {
     '^src/(.*)$': '<rootDir>/src/$1', // src를 절대 경로로 매핑
   },
 };
+

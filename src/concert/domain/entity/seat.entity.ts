@@ -24,6 +24,7 @@ export class Seat {
   @Column({ type: 'datetime', nullable: true })
   expire?: Date;
 
+  // 낙관적 락을 위한 버전 관리
   @VersionColumn()
   version: number;
 }

@@ -1,17 +1,19 @@
 import { Injectable, ConflictException } from '@nestjs/common';
-import { EntityManager, OptimisticLockVersionMismatchError } from 'typeorm';
+import { EntityManager, UpdateResult, DataSource } from 'typeorm';
 import { Seat } from '../domain/entity/seat.entity';
 import { SeatRepository } from './seat.repository';
 
 @Injectable()
-export class SeatRepositoryImpl implements SeatRepository {
-  constructor(private readonly entityManager: EntityManager) {}
+export class SeatRepositoryImpl extends SeatRepository {
+  constructor(private dataSource: DataSource) {
+    super(Seat, dataSource.createEntityManager());
+  }
 
   async getAvailableSeatsByPerformance(
     performanceId: number,
     manager?: EntityManager,
   ): Promise<Seat[]> {
-    const entryManager = manager || this.entityManager;
+    const entryManager = manager || this.manager;
     return await entryManager
       .createQueryBuilder(Seat, 'seat')
       .where('seat.performanceId = :performanceId', { performanceId })
@@ -26,7 +28,7 @@ export class SeatRepositoryImpl implements SeatRepository {
     expire: Date,
     manager?: EntityManager,
   ): Promise<void> {
-    const entryManager = manager || this.entityManager;
+    const entryManager = manager || this.manager;
     await entryManager
       .createQueryBuilder()
       .update(Seat)
@@ -45,9 +47,9 @@ export class SeatRepositoryImpl implements SeatRepository {
     seatId: number,
     status: string,
     manager?: EntityManager,
-  ): Promise<void> {
-    const entryManager = manager || this.entityManager;
-    await entryManager
+  ): Promise<UpdateResult | void> {
+    const entryManager = manager || this.manager;
+    return await entryManager
       .createQueryBuilder()
       .update('seat')
       .set({ status })
@@ -61,12 +63,12 @@ export class SeatRepositoryImpl implements SeatRepository {
     seatNumber: number,
     userId: number,
     manager?: EntityManager,
-  ): Promise<any> {
-    const entryManager = manager || this.entityManager;
+  ): Promise<Seat | null> {
+    const entryManager = manager || this.manager;
     const currentTime = new Date();
 
     return await entryManager
-      .createQueryBuilder('seat', 'seat')
+      .createQueryBuilder(Seat, 'seat')
       .where('seat.performanceId = :performanceId', { performanceId })
       .andWhere('seat.seatnumber = :seatNumber', { seatNumber })
       .andWhere('seat.userId = :userId', { userId })
@@ -81,23 +83,11 @@ export class SeatRepositoryImpl implements SeatRepository {
     seatNumber: number,
     manager?: EntityManager,
   ): Promise<Seat | null> {
-    const entryManager = manager || this.entityManager;
-      return await entryManager.findOne(Seat, {
-          where: { performanceId, seatnumber: seatNumber, status: 'RESERVABLE' },
-      });
-  }
 
-  async findOneWithOptimisticLock(
-    seatNumber: number,
-    performanceId: number,
-    version: number,
-    manager?: EntityManager,
-  ): Promise<Seat | null> {
-    const entryManager = manager || this.entityManager;
-      return await entryManager.findOne(Seat, {
-          where: { seatnumber: seatNumber, performanceId, status: 'RESERVABLE' },
-          lock: { mode: 'optimistic', version },
-      });
+    const entryManager = manager || this.manager;
+    return await entryManager.findOne(Seat, {
+      where: { performanceId, seatnumber: seatNumber, status: 'RESERVABLE' },
+    });
   }
 
   // 낙관적 락을 사용하여 좌석 예약 상태 업데이트
@@ -106,19 +96,67 @@ export class SeatRepositoryImpl implements SeatRepository {
     manager?: EntityManager,
   ): Promise<Seat | null> {
     try {
-      const entryManager = manager || this.entityManager;
-      return await entryManager.save(seat);
-    }
-    catch (error) {
-      if (error instanceof OptimisticLockVersionMismatchError) {
-          throw new ConflictException('다른 사용자가 이미 예약했습니다.');
+      const entryManager = manager || this.manager;
+
+      // 낙관적 락의 version을 통한 update
+      const updateResult: UpdateResult = await entryManager.update(
+        Seat,
+        { seatid: seat.seatid, version: seat.version },
+        {
+          status: 'TEMP',
+          expire: seat.expire,
+          userId: seat.userId,
+          version: seat.version + 1,
+        },
+      );
+
+      // 업데이트가 성공적으로 이루어졌는지 확인
+      if (updateResult.affected === 0) {
+        throw new ConflictException('다른 사용자가 이미 예약했습니다.');
       }
-      throw error;
+
+      // 업데이트된 seat 반환
+      return await entryManager.findOne(Seat, {
+        where: { seatid: seat.seatid },
+      });
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw error;
+      }
+      throw new Error('좌석 예약 중 문제가 발생했습니다.');
     }
   }
 
+  // 좌석 조회 - 비관적 락
+  async findOneByPerformanceAndSeatNumberWithLock(
+    performanceId: number,
+    seatnumber: number,
+    manager?: EntityManager,
+  ): Promise<Seat | null> {
+    const entryManager = manager || this.manager;
+    return await entryManager.findOne(Seat, {
+      where: { performanceId, seatnumber, status: 'RESERVABLE' },
+      lock: { mode: 'pessimistic_write' },
+    });
+  }
+
   async saveSeat(seatData: Partial<Seat>): Promise<Seat> {
-    const seat = this.entityManager.create(Seat, seatData);
-    return await this.entityManager.save(seat);
+    const seat = this.manager.create(Seat, seatData);
+    return await this.manager.save(seat);
+  }
+
+  async updateSeatVersionStatus(
+    seatId: number,
+    status: string,
+    version: number,
+    manager?: EntityManager,
+  ): Promise<boolean> {
+    const entryManager = manager || this.manager;
+    const result = await entryManager.update(
+      Seat,
+      { seatId, version },
+      { status, version: version + 1 },
+    );
+    return result.affected > 0;
   }
 }
