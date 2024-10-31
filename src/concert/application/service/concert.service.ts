@@ -140,6 +140,7 @@ export class ConcertService {
     reserveSeatDto: ReserveSeatRequestDto,
     token: string,
   ): Promise<ReserveSeatResponseDto> {
+
     const { concertId, userId, date, seatNumber } = reserveSeatDto;
 
     // 토큰 상태 확인
