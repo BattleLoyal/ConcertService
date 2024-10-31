@@ -84,5 +84,5 @@ export class QueueRepositoryImpl implements QueueRepository {
   async saveQueue(queueData: Partial<Queue>): Promise<Queue> {
     const queue = this.entityManager.create(Queue, queueData);
     return await this.entityManager.save(queue);
-}
+  }
 }

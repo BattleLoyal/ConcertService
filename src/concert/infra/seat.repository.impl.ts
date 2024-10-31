@@ -1,5 +1,9 @@
 import { Injectable, ConflictException } from '@nestjs/common';
-import { EntityManager, OptimisticLockVersionMismatchError } from 'typeorm';
+import {
+  EntityManager,
+  OptimisticLockVersionMismatchError,
+  UpdateResult,
+} from 'typeorm';
 import { Seat } from '../domain/entity/seat.entity';
 import { SeatRepository } from './seat.repository';
 
@@ -82,9 +86,9 @@ export class SeatRepositoryImpl implements SeatRepository {
     manager?: EntityManager,
   ): Promise<Seat | null> {
     const entryManager = manager || this.entityManager;
-      return await entryManager.findOne(Seat, {
-          where: { performanceId, seatnumber: seatNumber, status: 'RESERVABLE' },
-      });
+    return await entryManager.findOne(Seat, {
+      where: { performanceId, seatnumber: seatNumber, status: 'RESERVABLE' },
+    });
   }
 
   async findOneWithOptimisticLock(
@@ -94,10 +98,10 @@ export class SeatRepositoryImpl implements SeatRepository {
     manager?: EntityManager,
   ): Promise<Seat | null> {
     const entryManager = manager || this.entityManager;
-      return await entryManager.findOne(Seat, {
-          where: { seatnumber: seatNumber, performanceId, status: 'RESERVABLE' },
-          lock: { mode: 'optimistic', version },
-      });
+    return await entryManager.findOne(Seat, {
+      where: { seatnumber: seatNumber, performanceId, status: 'RESERVABLE' },
+      lock: { mode: 'optimistic', version },
+    });
   }
 
   // 낙관적 락을 사용하여 좌석 예약 상태 업데이트
@@ -107,13 +111,33 @@ export class SeatRepositoryImpl implements SeatRepository {
   ): Promise<Seat | null> {
     try {
       const entryManager = manager || this.entityManager;
-      return await entryManager.save(seat);
-    }
-    catch (error) {
-      if (error instanceof OptimisticLockVersionMismatchError) {
-          throw new ConflictException('다른 사용자가 이미 예약했습니다.');
+
+      // `seatid`와 `version` 값을 조건으로 하는 `update` 쿼리 실행
+      const updateResult: UpdateResult = await entryManager.update(
+        Seat,
+        { seatid: seat.seatid, version: seat.version },
+        {
+          status: 'TEMP',
+          expire: seat.expire,
+          userId: seat.userId,
+          version: seat.version + 1,
+        },
+      );
+
+      // 업데이트가 성공적으로 이루어졌는지 확인
+      if (updateResult.affected === 0) {
+        throw new ConflictException('다른 사용자가 이미 예약했습니다.');
       }
-      throw error;
+
+      // 업데이트된 seat 반환
+      return await entryManager.findOne(Seat, {
+        where: { seatid: seat.seatid },
+      });
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw error;
+      }
+      throw new Error('좌석 예약 중 문제가 발생했습니다.');
     }
   }
 

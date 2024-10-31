@@ -40,6 +40,10 @@ describe('콘서트 통합 테스트', () => {
           entities: [Seat, Performance, Queue, Concert],
           synchronize: true,
           timezone: '+09:00',
+          extra: {
+            connectionLimit: 20,
+          },
+          //logging: true,
         }),
         TypeOrmModule.forFeature([Seat, Performance, Queue, Concert]),
       ],
@@ -52,9 +56,11 @@ describe('콘서트 통합 테스트', () => {
     }).compile();
 
     service = module.get<ConcertService>(ConcertService);
-    queueRepository = module.get<QueueRepositoryImpl>(QueueRepositoryImpl);             // QueueRepository 타입으로 가져오기
-    seatRepository = module.get<SeatRepositoryImpl>(SeatRepositoryImpl);                // SeatRepository 타입으로 가져오기
-    performanceRepository = module.get<PerformanceRepositoryImpl>(PerformanceRepositoryImpl); // PerformanceRepository 타입으로 가져오기
+    queueRepository = module.get<QueueRepositoryImpl>(QueueRepositoryImpl); // QueueRepository 타입으로 가져오기
+    seatRepository = module.get<SeatRepositoryImpl>(SeatRepositoryImpl); // SeatRepository 타입으로 가져오기
+    performanceRepository = module.get<PerformanceRepositoryImpl>(
+      PerformanceRepositoryImpl,
+    ); // PerformanceRepository 타입으로 가져오기
     dataSource = module.get<DataSource>(getDataSourceToken());
   });
 
@@ -64,7 +70,7 @@ describe('콘서트 통합 테스트', () => {
 
     for (const entity of entities) {
       const repository = dataSource.getRepository(entity.name);
-      console.log(`${entity.tableName} truncated`)
+      console.log(`${entity.tableName} truncated`);
       await repository.query(`TRUNCATE TABLE ${entity.tableName}`);
     }
   });
@@ -74,61 +80,76 @@ describe('콘서트 통합 테스트', () => {
   });
 
   // 테스트 케이스
-  // 1. 성공 케이스
-  it('100명의 좌석 예약 시도 중 단 하나만 성공', async () => {
-    // give
-    const performanceDate = '2024-11-10';
-    const date = new Date(performanceDate);
-    const concertId = 1;
-    const seatNumber = 1;
+  // 1. 좌석 예약 성공 케이스 =============================================
+  it(
+    '동시 좌석 예약 시도 중 단 하나만 성공',
+    async () => {
+      // give
+      const performanceDate = '2024-11-10';
+      const date = new Date(performanceDate);
+      const concertId = 1;
+      const seatNumber = 1;
+      const performanceid = 1;
 
-    // 공연 및 좌석 설정
-    const performance = await performanceRepository.savePerformance({
-      performanceid: 1,
-      concertid: concertId,
-      date: date,
-    });
+      const tryCount = 100; // 동시 요청 개수
 
-    await seatRepository.saveSeat({
-      performanceId: performance.performanceid,
-      seatnumber: seatNumber,
-      price: 100,
-      status: 'RESERVABLE',
-    });
-
-    // 대기열에 3명의 사용자 추가
-    const tokens = ['UUID1-QUEUE:ACTIVE', 'UUID2-QUEUE:ACTIVE', 'UUID3-QUEUE:ACTIVE'];
-    const reserveSeatDto = { concertId, date: performanceDate, seatNumber };
-
-    for (let i = 1; i <= 3; i++) {
-      await queueRepository.saveQueue({
-        UUID: `UUID${i}`,
-        UserID: i,
-        status: 'ACTIVE',
+      // 공연 및 좌석 설정
+      const performance = await performanceRepository.savePerformance({
+        performanceid: performanceid,
+        concertid: concertId,
+        date: date,
       });
-    }
 
-    // 요청을 개별적으로 실행하여 결과 수집
-    const results = [];
-    for (let i = 0; i < tokens.length; i++) {
-      try {
-        await service.reserveSeatWithOptimisticLock(
-          { ...reserveSeatDto, userId: i + 1 },
-          tokens[i],
-        );
-        results.push('success');
-      } catch (error) {
-        console.log(`User ${i + 1} failed:`, error.message);
-        results.push('failure');
+      // 좌석 생성
+      await seatRepository.saveSeat({
+        performanceId: performance.performanceid,
+        seatnumber: seatNumber,
+        price: 100,
+        status: 'RESERVABLE',
+      });
+
+      // 대기열에 저장
+      for (let i = 1; i <= tryCount; i++) {
+        await queueRepository.saveQueue({
+          UUID: `UUID${i}`,
+          UserID: i,
+          status: 'ACTIVE',
+        });
       }
-    }
 
-    // 성공 및 실패 개수 확인
-    const successCount = results.filter((result) => result === 'success').length;
-    const failureCount = results.filter((result) => result === 'failure').length;
+      const reserveSeatDto = { concertId, date: performanceDate, seatNumber };
+      const tokens = Array.from(
+        { length: tryCount },
+        (_, i) => `UUID${i + 1}-QUEUE:ACTIVE`,
+      );
 
-    // 단 하나의 요청만 성공해야 함을 검증
-    expect(successCount).toBe(1);
-    expect(failureCount).toBe(2);
-  });
+      // 동시에 좌석 예약 요청
+      const promises = tokens.map((token, index) =>
+        service
+          .reserveSeatWithOptimisticLock(
+            { ...reserveSeatDto, userId: index + 1 },
+            token,
+          )
+          .then(() => 'success')
+          .catch((error) => {
+            console.log(`User ${index + 1} failed:`, error.message);
+            return 'failure';
+          }),
+      );
+
+      const results = await Promise.all(promises);
+      const successCount = results.filter(
+        (result) => result === 'success',
+      ).length;
+      const failureCount = results.filter(
+        (result) => result === 'failure',
+      ).length;
+
+      // 단 하나의 요청만 성공해야 함을 검증
+      expect(successCount).toBe(1);
+      expect(failureCount).toBe(tryCount - 1);
+    },
+    100 * 1000,
+  );
+  // =============================================
 });
