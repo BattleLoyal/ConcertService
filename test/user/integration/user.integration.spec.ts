@@ -96,4 +96,52 @@ describe('유저 포인트 충전 테스트', () => {
     },
     50 * 1000,
   );
+  // ====================================================
+
+  // 2. 비관적 락 - 포인트 충전 케이스 =============================================
+  it(
+    '비관적 락 : 한 유저가 동시에 포인트 충전을 다수 요청하는 케이스',
+    async () => {
+      //given
+      const initAmount = 1000;
+      const chargeAmount = 500;
+      const tryCount = 10;
+      // 유저 저장
+      const user = await userRepository.save({
+        balance: initAmount,
+      });
+
+      // when
+      // 동시에 포인트 충전 요청
+      const requests = Array.from({ length: tryCount }, () =>
+        userService
+          .chargeBalanceWithPessimisticLock(user.userId, chargeAmount)
+          .then(() => 'success')
+          .catch((error) => {
+            return 'failure';
+          }),
+      );
+
+      // 모든 요청 실행 저장
+      const results = await Promise.all(requests);
+      const successCount = results.filter(
+        (result) => result === 'success',
+      ).length;
+      const failureCount = results.filter(
+        (result) => result === 'failure',
+      ).length;
+
+      // Then
+      // 모든 포인트 충전을 성공해야 한다.
+      expect(successCount).toBe(tryCount);
+      expect(failureCount).toBe(0);
+
+      // 유저의 잔액은 성공케이스*충전금액
+      const updatedUser = await userRepository.findOneBy({
+        userId: user.userId,
+      });
+      expect(updatedUser.balance).toBe(initAmount + chargeAmount * tryCount);
+    },
+    50 * 1000,
+  );
 });

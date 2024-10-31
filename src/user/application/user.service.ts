@@ -65,6 +65,7 @@ export class UserService {
     };
   }
 
+  // 낙관적락 - 포인트 충전
   async chargeBalanceWithOptimisticLock(
     userId: number,
     amount: number,
@@ -98,5 +99,31 @@ export class UserService {
       }
       throw new Error('포인트 충전 중 문제가 발생했습니다.');
     }
+  }
+
+  // 비관적락 - 포인트 충전
+  async chargeBalanceWithPessimisticLock(
+    userId: number,
+    amount: number,
+  ): Promise<ChargeBalanceResponseDto> {
+    return await this.entityManager.transaction(
+      async (manager: EntityManager) => {
+        // 트랜잭션 내에서 비관적 락을 적용하여 사용자 조회
+        const user = await manager.findOne(User, {
+          where: { userId },
+          lock: { mode: 'pessimistic_write' },
+        });
+
+        if (!user) {
+          throw new NotFoundException('사용자를 찾을 수 없습니다.');
+        }
+
+        // 포인트 충전 후 저장
+        user.balance += amount;
+        await manager.save(user);
+
+        return { userId: user.userId, newBalance: user.balance };
+      },
+    );
   }
 }
