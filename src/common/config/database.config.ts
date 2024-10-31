@@ -22,5 +22,5 @@ export const getDBConfig = (
   extra: {
     connectionLimit: 20,
   },
-  logging: true,
+  //logging: true,
 });
