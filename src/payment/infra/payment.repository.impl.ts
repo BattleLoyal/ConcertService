@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { PaymentRepository } from './payment.repository';
+import { Payment } from 'src/payment/domain/entity/payment.entity';
 
 @Injectable()
 export class PaymentRepositoryImpl implements PaymentRepository {
@@ -15,9 +16,9 @@ export class PaymentRepositoryImpl implements PaymentRepository {
   ): Promise<number> {
     const entity = manager || this.entityManager;
     const result = await entity
-      .createQueryBuilder()
+      .createQueryBuilder(Payment, 'payment')
       .insert()
-      .into('payment')
+      .into('Payment')
       .values({
         userId,
         status,

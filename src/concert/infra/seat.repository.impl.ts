@@ -1,21 +1,19 @@
 import { Injectable, ConflictException } from '@nestjs/common';
-import {
-  EntityManager,
-  OptimisticLockVersionMismatchError,
-  UpdateResult,
-} from 'typeorm';
+import { EntityManager, UpdateResult, DataSource } from 'typeorm';
 import { Seat } from '../domain/entity/seat.entity';
 import { SeatRepository } from './seat.repository';
 
 @Injectable()
-export class SeatRepositoryImpl implements SeatRepository {
-  constructor(private readonly entityManager: EntityManager) {}
+export class SeatRepositoryImpl extends SeatRepository {
+  constructor(private dataSource: DataSource) {
+    super(Seat, dataSource.createEntityManager());
+  }
 
   async getAvailableSeatsByPerformance(
     performanceId: number,
     manager?: EntityManager,
   ): Promise<Seat[]> {
-    const entryManager = manager || this.entityManager;
+    const entryManager = manager || this.manager;
     return await entryManager
       .createQueryBuilder(Seat, 'seat')
       .where('seat.performanceId = :performanceId', { performanceId })
@@ -30,7 +28,7 @@ export class SeatRepositoryImpl implements SeatRepository {
     expire: Date,
     manager?: EntityManager,
   ): Promise<void> {
-    const entryManager = manager || this.entityManager;
+    const entryManager = manager || this.manager;
     await entryManager
       .createQueryBuilder()
       .update(Seat)
@@ -49,9 +47,9 @@ export class SeatRepositoryImpl implements SeatRepository {
     seatId: number,
     status: string,
     manager?: EntityManager,
-  ): Promise<void> {
-    const entryManager = manager || this.entityManager;
-    await entryManager
+  ): Promise<UpdateResult | void> {
+    const entryManager = manager || this.manager;
+    return await entryManager
       .createQueryBuilder()
       .update('seat')
       .set({ status })
@@ -65,12 +63,12 @@ export class SeatRepositoryImpl implements SeatRepository {
     seatNumber: number,
     userId: number,
     manager?: EntityManager,
-  ): Promise<any> {
-    const entryManager = manager || this.entityManager;
+  ): Promise<Seat | null> {
+    const entryManager = manager || this.manager;
     const currentTime = new Date();
 
     return await entryManager
-      .createQueryBuilder('seat', 'seat')
+      .createQueryBuilder(Seat, 'seat')
       .where('seat.performanceId = :performanceId', { performanceId })
       .andWhere('seat.seatnumber = :seatNumber', { seatNumber })
       .andWhere('seat.userId = :userId', { userId })
@@ -85,7 +83,7 @@ export class SeatRepositoryImpl implements SeatRepository {
     seatNumber: number,
     manager?: EntityManager,
   ): Promise<Seat | null> {
-    const entryManager = manager || this.entityManager;
+    const entryManager = manager || this.manager;
     return await entryManager.findOne(Seat, {
       where: { performanceId, seatnumber: seatNumber, status: 'RESERVABLE' },
     });
@@ -97,7 +95,7 @@ export class SeatRepositoryImpl implements SeatRepository {
     manager?: EntityManager,
   ): Promise<Seat | null> {
     try {
-      const entryManager = manager || this.entityManager;
+      const entryManager = manager || this.manager;
 
       // 낙관적 락의 version을 통한 update
       const updateResult: UpdateResult = await entryManager.update(
@@ -134,7 +132,7 @@ export class SeatRepositoryImpl implements SeatRepository {
     seatnumber: number,
     manager?: EntityManager,
   ): Promise<Seat | null> {
-    const entryManager = manager || this.entityManager;
+    const entryManager = manager || this.manager;
     return await entryManager.findOne(Seat, {
       where: { performanceId, seatnumber, status: 'RESERVABLE' },
       lock: { mode: 'pessimistic_write' },
@@ -142,7 +140,22 @@ export class SeatRepositoryImpl implements SeatRepository {
   }
 
   async saveSeat(seatData: Partial<Seat>): Promise<Seat> {
-    const seat = this.entityManager.create(Seat, seatData);
-    return await this.entityManager.save(seat);
+    const seat = this.manager.create(Seat, seatData);
+    return await this.manager.save(seat);
+  }
+
+  async updateSeatVersionStatus(
+    seatId: number,
+    status: string,
+    version: number,
+    manager?: EntityManager,
+  ): Promise<boolean> {
+    const entryManager = manager || this.manager;
+    const result = await entryManager.update(
+      Seat,
+      { seatId, version },
+      { status, version: version + 1 },
+    );
+    return result.affected > 0;
   }
 }

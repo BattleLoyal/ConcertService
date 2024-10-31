@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { EntityManager } from 'typeorm';
+import { EntityManager, UpdateResult } from 'typeorm';
 import { User } from '../domain/entity/user.entity';
 import { UserRepository } from './user.repository';
 import { DataSource } from 'typeorm';
@@ -27,9 +27,9 @@ export class UserRepositoryImpl extends UserRepository {
     userId: number,
     newBalance: number,
     manager?: EntityManager,
-  ): Promise<void> {
+  ): Promise<UpdateResult | void> {
     const entity = manager || this.manager; // 매니저가 있으면 사용, 없으면 기본 entityManager 사용
-    await entity
+    return await entity
       .createQueryBuilder()
       .update(User)
       .set({ balance: newBalance })
@@ -50,5 +50,19 @@ export class UserRepositoryImpl extends UserRepository {
       .set({ balance: () => `balance + ${amount}` }) // 기존 잔액에 추가
       .where('userId = :userId', { userId })
       .execute();
+  }
+
+  async updateUserBalanceWithOptimisticLock(
+    userId: number,
+    amount: number,
+    version: number,
+    manager: EntityManager,
+  ): Promise<boolean> {
+    const result = await manager.update(
+      User,
+      { userId, version },
+      { balance: () => `balance - ${amount}`, version: version + 1 },
+    );
+    return result.affected > 0;
   }
 }

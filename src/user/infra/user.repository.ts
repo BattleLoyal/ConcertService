@@ -1,5 +1,5 @@
 import { User } from '../domain/entity/user.entity';
-import { Repository } from 'typeorm';
+import { Repository, EntityManager } from 'typeorm';
 
 export abstract class UserRepository extends Repository<User> {
   abstract findUserById(userId: number): Promise<User | null>;
@@ -7,4 +7,11 @@ export abstract class UserRepository extends Repository<User> {
     userId: number,
     amount: number,
   ): Promise<void>;
+
+  abstract updateUserBalanceWithOptimisticLock(
+    userId: number,
+    amount: number,
+    version: number,
+    manager: EntityManager,
+  ): Promise<boolean>;
 }
