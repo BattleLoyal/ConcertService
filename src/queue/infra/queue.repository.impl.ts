@@ -80,4 +80,9 @@ export class QueueRepositoryImpl implements QueueRepository {
       .where('UUID = :uuid', { uuid })
       .execute();
   }
+
+  async saveQueue(queueData: Partial<Queue>): Promise<Queue> {
+    const queue = this.entityManager.create(Queue, queueData);
+    return await this.entityManager.save(queue);
+}
 }

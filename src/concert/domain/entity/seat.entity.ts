@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Version } from '@nestjs/common';
+import { Entity, PrimaryGeneratedColumn, Column, VersionColumn } from 'typeorm';
 
 @Entity('seat')
 export class Seat {
@@ -22,4 +23,7 @@ export class Seat {
 
   @Column({ type: 'datetime', nullable: true })
   expire?: Date;
+
+  @VersionColumn()
+  version: number;
 }

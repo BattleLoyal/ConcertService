@@ -125,6 +125,6 @@ export class ConcertController {
     @Headers('X-Token') token: string,
   ): Promise<ReserveSeatResponseDto> {
     reserveSeatDto.concertId = concertId;
-    return await this.concertService.reserveSeat(reserveSeatDto, token);
+    return await this.concertService.reserveSeatWithOptimisticLock(reserveSeatDto, token);
   }
 }
