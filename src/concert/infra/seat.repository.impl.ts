@@ -91,19 +91,6 @@ export class SeatRepositoryImpl implements SeatRepository {
     });
   }
 
-  async findOneWithOptimisticLock(
-    seatNumber: number,
-    performanceId: number,
-    version: number,
-    manager?: EntityManager,
-  ): Promise<Seat | null> {
-    const entryManager = manager || this.entityManager;
-    return await entryManager.findOne(Seat, {
-      where: { seatnumber: seatNumber, performanceId, status: 'RESERVABLE' },
-      lock: { mode: 'optimistic', version },
-    });
-  }
-
   // 낙관적 락을 사용하여 좌석 예약 상태 업데이트
   async reserveSeatWithOptimisticLock(
     seat: Seat,
@@ -112,7 +99,7 @@ export class SeatRepositoryImpl implements SeatRepository {
     try {
       const entryManager = manager || this.entityManager;
 
-      // `seatid`와 `version` 값을 조건으로 하는 `update` 쿼리 실행
+      // 낙관적 락의 version을 통한 update
       const updateResult: UpdateResult = await entryManager.update(
         Seat,
         { seatid: seat.seatid, version: seat.version },
@@ -139,6 +126,19 @@ export class SeatRepositoryImpl implements SeatRepository {
       }
       throw new Error('좌석 예약 중 문제가 발생했습니다.');
     }
+  }
+
+  // 좌석 조회 - 비관적 락
+  async findOneByPerformanceAndSeatNumberWithLock(
+    performanceId: number,
+    seatnumber: number,
+    manager?: EntityManager,
+  ): Promise<Seat | null> {
+    const entryManager = manager || this.entityManager;
+    return await entryManager.findOne(Seat, {
+      where: { performanceId, seatnumber, status: 'RESERVABLE' },
+      lock: { mode: 'pessimistic_write' },
+    });
   }
 
   async saveSeat(seatData: Partial<Seat>): Promise<Seat> {

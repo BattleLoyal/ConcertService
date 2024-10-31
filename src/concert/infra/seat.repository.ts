@@ -23,13 +23,6 @@ export interface SeatRepository {
     userId: number,
     manager?: EntityManager,
   ): Promise<any>;
-
-  findOneWithOptimisticLock(
-    seatNumber: number,
-    performanceId: number,
-    version: number,
-    manager?: EntityManager,
-  ): Promise<Seat | null>;
   findOneByPerformanceAndSeatNumber(
     performanceId: number,
     seatNumber: number,
@@ -38,5 +31,10 @@ export interface SeatRepository {
   reserveSeatWithOptimisticLock(
     seat: Seat,
     manager?: EntityManager,
+  ): Promise<Seat | null>;
+  findOneByPerformanceAndSeatNumberWithLock(
+    performanceId: number,
+    seatnumber: number,
+    manager: EntityManager,
   ): Promise<Seat | null>;
 }

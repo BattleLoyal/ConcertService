@@ -56,11 +56,11 @@ describe('콘서트 통합 테스트', () => {
     }).compile();
 
     service = module.get<ConcertService>(ConcertService);
-    queueRepository = module.get<QueueRepositoryImpl>(QueueRepositoryImpl); // QueueRepository 타입으로 가져오기
-    seatRepository = module.get<SeatRepositoryImpl>(SeatRepositoryImpl); // SeatRepository 타입으로 가져오기
+    queueRepository = module.get<QueueRepositoryImpl>(QueueRepositoryImpl);
+    seatRepository = module.get<SeatRepositoryImpl>(SeatRepositoryImpl);
     performanceRepository = module.get<PerformanceRepositoryImpl>(
       PerformanceRepositoryImpl,
-    ); // PerformanceRepository 타입으로 가져오기
+    );
     dataSource = module.get<DataSource>(getDataSourceToken());
   });
 
@@ -80,9 +80,9 @@ describe('콘서트 통합 테스트', () => {
   });
 
   // 테스트 케이스
-  // 1. 좌석 예약 성공 케이스 =============================================
+  // 1. 낙관적 락 - 좌석 예약 성공 케이스 =============================================
   it(
-    '동시 좌석 예약 시도 중 단 하나만 성공',
+    '낙관적 락 : 동시 좌석 예약 시도 중 단 하나만 성공',
     async () => {
       // give
       const performanceDate = '2024-11-10';
@@ -149,7 +149,79 @@ describe('콘서트 통합 테스트', () => {
       expect(successCount).toBe(1);
       expect(failureCount).toBe(tryCount - 1);
     },
-    100 * 1000,
+    50 * 1000,
   );
   // =============================================
+
+  // 2. 비관적 락 - 좌석 예약 성공 케이스 =============================================
+  it(
+    '비관적락 : 동시 좌석 예약 중 한 명만 성공',
+    async () => {
+      // give
+      const performanceDate = '2024-11-10';
+      const date = new Date(performanceDate);
+      const concertId = 1;
+      const seatNumber = 1;
+      const performanceid = 1;
+
+      const tryCount = 100; // 동시 요청 개수
+
+      // 공연 및 좌석 설정
+      const performance = await performanceRepository.savePerformance({
+        performanceid: performanceid,
+        concertid: concertId,
+        date: date,
+      });
+
+      // 좌석 생성
+      await seatRepository.saveSeat({
+        performanceId: performance.performanceid,
+        seatnumber: seatNumber,
+        price: 100,
+        status: 'RESERVABLE',
+      });
+
+      // 대기열에 저장
+      for (let i = 1; i <= tryCount; i++) {
+        await queueRepository.saveQueue({
+          UUID: `UUID${i}`,
+          UserID: i,
+          status: 'ACTIVE',
+        });
+      }
+
+      const reserveSeatDto = { concertId, date: performanceDate, seatNumber };
+      const tokens = Array.from(
+        { length: tryCount },
+        (_, i) => `UUID${i + 1}-QUEUE:ACTIVE`,
+      );
+
+      // 동시에 좌석 예약 요청
+      const promises = tokens.map((token, index) =>
+        service
+          .reserveSeatWithPessimisticLock(
+            { ...reserveSeatDto, userId: index + 1 },
+            token,
+          )
+          .then(() => 'success')
+          .catch((error) => {
+            console.log(`User ${index + 1} failed:`, error.message);
+            return 'failure';
+          }),
+      );
+
+      const results = await Promise.all(promises);
+      const successCount = results.filter(
+        (result) => result === 'success',
+      ).length;
+      const failureCount = results.filter(
+        (result) => result === 'failure',
+      ).length;
+
+      // 단 하나의 요청만 성공해야 함을 검증
+      expect(successCount).toBe(1);
+      expect(failureCount).toBe(tryCount - 1);
+    },
+    50 * 1000,
+  );
 });

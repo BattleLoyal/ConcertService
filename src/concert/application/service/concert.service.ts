@@ -135,6 +135,7 @@ export class ConcertService {
     );
   }
 
+  // 좌석 예약 - 낙관적 락
   async reserveSeatWithOptimisticLock(
     reserveSeatDto: ReserveSeatRequestDto,
     token: string,
@@ -172,7 +173,7 @@ export class ConcertService {
     expireTime.setMinutes(expireTime.getMinutes() + 5);
 
     // 좌석 정보 업데이트
-    seat.status = 'TEMP'; // 임시
+    seat.status = 'TEMP'; // 임시 예약
     seat.userId = userId;
     seat.expire = expireTime;
 
@@ -188,5 +189,65 @@ export class ConcertService {
     };
 
     return result;
+  }
+
+  // 좌석 예약 - 비관적 락
+  async reserveSeatWithPessimisticLock(
+    reserveSeatDto: ReserveSeatRequestDto,
+    token: string,
+  ): Promise<ReserveSeatResponseDto> {
+    const { concertId, userId, date, seatNumber } = reserveSeatDto;
+
+    // 토큰 상태 확인
+    const [uuid] = token.split('-QUEUE:');
+    const isActive = await this.queueRepository.isTokenActive(uuid);
+    if (!isActive) {
+      throw new UnauthorizedException('대기열에 활성화되지 않았습니다.');
+    }
+
+    // 콘서트 ID와 날짜로 공연 아이디 가져오기
+    const performance =
+      await this.performanceRepository.getPerformanceByConcertAndDate(
+        concertId,
+        date,
+      );
+    if (!performance) {
+      throw new NotFoundException('해당 날짜의 공연을 찾을 수 없습니다.');
+    }
+
+    // 비관적 락으로 잠금
+    return await this.entityManager.transaction(async (manager) => {
+      const seat =
+        await this.seatRepository.findOneByPerformanceAndSeatNumberWithLock(
+          performance.performanceid,
+          seatNumber,
+          manager,
+        );
+      if (!seat || seat.status !== 'RESERVABLE') {
+        throw new ConflictException('해당 좌석은 예약할 수 없습니다.');
+      }
+
+      // 5분 동안 임시 예약 설정
+      const expireTime = new Date();
+      expireTime.setMinutes(expireTime.getMinutes() + 5);
+
+      // 좌석 정보 업데이트
+      seat.status = 'TEMP';
+      seat.userId = userId;
+      seat.expire = expireTime;
+
+      // 좌석 정보 저장
+      await manager.save(seat);
+
+      const result: ReserveSeatResponseDto = {
+        userId,
+        date,
+        seatNumber,
+        concertId,
+        expire: expireTime.toLocaleString(),
+      };
+
+      return result;
+    });
   }
 }
