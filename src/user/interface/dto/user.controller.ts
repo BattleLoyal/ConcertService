@@ -29,7 +29,10 @@ export class UserController {
     @Param('id') userId: number,
     @Body() updateBalanceDto: UpdateBalanceDto,
   ): Promise<ChargeBalanceResponseDto> {
-    return this.userService.chargeBalance(userId, updateBalanceDto);
+    return this.userService.chargeBalanceWithOptimisticLock(
+      userId,
+      updateBalanceDto.amount,
+    );
   }
 
   @Get(':id/balance')

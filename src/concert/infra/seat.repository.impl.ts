@@ -83,7 +83,6 @@ export class SeatRepositoryImpl extends SeatRepository {
     seatNumber: number,
     manager?: EntityManager,
   ): Promise<Seat | null> {
-
     const entryManager = manager || this.manager;
     return await entryManager.findOne(Seat, {
       where: { performanceId, seatnumber: seatNumber, status: 'RESERVABLE' },

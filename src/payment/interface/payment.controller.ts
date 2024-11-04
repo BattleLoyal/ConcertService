@@ -1,4 +1,4 @@
-import { Controller, Post, Headers, Body } from '@nestjs/common';
+import { Controller, Post, Headers, Body, UseGuards } from '@nestjs/common';
 import { PaymentService } from '../application/service/payment.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import {
@@ -8,6 +8,7 @@ import {
   ApiResponse,
   ApiHeader,
 } from '@nestjs/swagger';
+import { TokenStateGuard } from 'src/common/guards/token-state.guard';
 
 @ApiTags('Payment')
 @Controller('payment')
@@ -20,7 +21,7 @@ export class PaymentController {
     description: '예약된 좌석의 결제를 처리합니다.',
   })
   @ApiHeader({
-    name: 'X-Token',
+    name: 'authorization',
     description: '대기열 토큰',
     required: true,
     example: 'UUID-QUEUE:1',
@@ -55,8 +56,9 @@ export class PaymentController {
       },
     },
   })
+  @UseGuards(TokenStateGuard)
   async processPayment(
-    @Headers('X-Token') token: string,
+    @Headers('authorization') token: string,
     @Body() createPaymentDto: CreatePaymentDto,
   ): Promise<any> {
     return await this.paymentService.processPayment(token, createPaymentDto);

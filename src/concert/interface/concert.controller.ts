@@ -8,6 +8,7 @@ import {
   Body,
   Headers,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { ConcertService } from '../application/service/concert.service';
@@ -26,6 +27,7 @@ import { AvailableSeatsRequestDto } from './dto/request/available-seats-request.
 import { AvailableSeatsResponseDto } from './dto/response/available-seats-response.dto';
 import { ReserveSeatRequestDto } from './dto/request/reserve-seat-request.dto';
 import { ReserveSeatResponseDto } from './dto/response/reserve-seat-response.dto';
+import { TokenStateGuard } from 'src/common/guards/token-state.guard';
 
 @ApiTags('Concert')
 @Controller('concert')
@@ -45,7 +47,7 @@ export class ConcertController {
     example: '2024-10-17',
   })
   @ApiHeader({
-    name: 'X-Token',
+    name: 'authorization',
     description: '대기열 토큰',
     required: true,
     example: 'UUID-QUEUE:1',
@@ -54,15 +56,15 @@ export class ConcertController {
     status: 200,
     type: AvailableDatesResponseDto,
   })
+  @UseGuards(TokenStateGuard)
   async getAvailableDates(
     @Param('id') concertId: number,
     @Query('date') date: string,
-    @Headers('X-Token') token: string,
+    @Headers('authorization') token: string,
   ): Promise<AvailableDatesResponseDto> {
     const availableDates = await this.concertService.getAvailableDates(
       concertId,
       date,
-      token,
     );
 
     return {
@@ -75,7 +77,7 @@ export class ConcertController {
   @ApiParam({ name: 'id', description: '콘서트 ID', example: 1 })
   @ApiQuery({ name: 'date', description: '예약 날짜', example: '2024-10-17' })
   @ApiHeader({
-    name: 'X-Token',
+    name: 'authorization',
     description: '대기열 토큰',
     required: true,
     example: 'UUID-QUEUE:1',
@@ -85,15 +87,15 @@ export class ConcertController {
     description: '좌석 조회 성공',
     type: AvailableSeatsResponseDto,
   })
+  @UseGuards(TokenStateGuard)
   async getAvailableSeats(
     @Param('id') concertId: number,
     @Query('date') date: string,
-    @Headers('X-Token') token: string,
+    @Headers('authorization') token: string,
   ): Promise<AvailableSeatsResponseDto> {
     const availableSeats = await this.concertService.getAvailableSeats(
       concertId,
       date,
-      token,
     );
 
     return { availableSeats };
@@ -108,7 +110,7 @@ export class ConcertController {
   @ApiParam({ name: 'id', description: '콘서트 ID', example: 1 })
   @ApiQuery({ name: 'date', description: '예약할 날짜', example: '2024-10-17' })
   @ApiHeader({
-    name: 'X-Token',
+    name: 'authorization',
     description: '대기열 토큰',
     required: true,
     example: 'UUID-QUEUE:1',
@@ -119,15 +121,15 @@ export class ConcertController {
     description: '좌석 임시 예약 성공',
     type: ReserveSeatResponseDto,
   })
+  @UseGuards(TokenStateGuard)
   async reserveSeat(
     @Param('id') concertId: number,
     @Body() reserveSeatDto: ReserveSeatRequestDto,
-    @Headers('X-Token') token: string,
+    @Headers('authorization') token: string,
   ): Promise<ReserveSeatResponseDto> {
     reserveSeatDto.concertId = concertId;
     return await this.concertService.reserveSeatWithOptimisticLock(
       reserveSeatDto,
-      token,
     );
   }
 }

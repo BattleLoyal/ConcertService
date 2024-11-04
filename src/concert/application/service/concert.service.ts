@@ -28,15 +28,7 @@ export class ConcertService {
   async getAvailableDates(
     concertId: number,
     startDate: string,
-    token: string,
   ): Promise<string[]> {
-    // 토큰 상태 확인을 위해 QueueRepository 호출
-    const [uuid] = token.split('-QUEUE:');
-    const isActive = await this.queueRepository.isTokenActive(uuid);
-    if (!isActive) {
-      throw new UnauthorizedException('Token is not active.');
-    }
-
     const parsedDate = new Date(startDate);
 
     // 예약 가능한 날짜 조회를 위해 PerformanceRepository 호출
@@ -57,15 +49,7 @@ export class ConcertService {
   async getAvailableSeats(
     concertId: number,
     date: string,
-    token: string,
   ): Promise<number[]> {
-    // 토큰 상태 확인을 위해 QueueRepository 호출
-    const [uuid] = token.split('-QUEUE:');
-    const isActive = await this.queueRepository.isTokenActive(uuid);
-    if (!isActive) {
-      throw new UnauthorizedException('대기열에 활성화되어있지 않습니다.');
-    }
-
     // 공연 조회
     const performance =
       await this.performanceRepository.getPerformanceByConcertAndDate(
@@ -138,17 +122,8 @@ export class ConcertService {
   // 좌석 예약 - 낙관적 락
   async reserveSeatWithOptimisticLock(
     reserveSeatDto: ReserveSeatRequestDto,
-    token: string,
   ): Promise<ReserveSeatResponseDto> {
-
     const { concertId, userId, date, seatNumber } = reserveSeatDto;
-
-    // 토큰 상태 확인
-    const [uuid] = token.split('-QUEUE:');
-    const isActive = await this.queueRepository.isTokenActive(uuid);
-    if (!isActive) {
-      throw new UnauthorizedException('대기열에 활성화되지 않았습니다.');
-    }
 
     // 콘서트 ID와 날짜로 공연 아이디 가져오기
     const performance =

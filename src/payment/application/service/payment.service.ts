@@ -33,13 +33,6 @@ export class PaymentService {
     const { userId, concertId, date, seatNumber } = createPaymentDto;
     return await this.entityManager.transaction(
       async (manager: EntityManager) => {
-        // 토큰 상태 확인
-        const [uuid] = token.split('-QUEUE:');
-        const isActive = await this.queueRepository.isTokenActive(uuid);
-        if (!isActive) {
-          throw new UnauthorizedException('대기열에 활성되지 않았습니다.');
-        }
-
         // 유저 조회
         const user = await this.userRepository.findUserById(userId, manager);
         if (!user) {
@@ -118,6 +111,7 @@ export class PaymentService {
         }
 
         // 토큰 상태를 EXPIRE로 변경
+        const [uuid] = token.split('-QUEUE:');
         await this.queueRepository.updateTokenState(uuid, 'EXPIRE', manager);
 
         return {
@@ -141,13 +135,6 @@ export class PaymentService {
     const { userId, concertId, date, seatNumber } = createPaymentDto;
     return await this.entityManager.transaction(
       async (manager: EntityManager) => {
-        // 토큰 상태 확인
-        const [uuid] = token.split('-QUEUE:');
-        const isActive = await this.queueRepository.isTokenActive(uuid);
-        if (!isActive) {
-          throw new UnauthorizedException('대기열에 활성되지 않았습니다.');
-        }
-
         // 유저 조회
         const user = await this.userRepository.findOne({ where: { userId } });
         if (!user) {
@@ -232,6 +219,7 @@ export class PaymentService {
         );
 
         // 토큰 상태를 EXPIRE로 변경
+        const [uuid] = token.split('-QUEUE:');
         await this.queueRepository.updateTokenState(uuid, 'EXPIRE', manager);
 
         return {

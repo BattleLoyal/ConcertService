@@ -34,7 +34,7 @@ export class QueueController {
       await this.queueService.issueToken(createTokenDto);
 
     // 응답 헤더에 UUID-QUEUE:대기열번호 토큰 추가
-    res.setHeader('X-Token', token);
+    res.setHeader('authorization', token);
     const responseBody = { tokenState };
     return res.status(200).json(responseBody);
   }
@@ -44,14 +44,18 @@ export class QueueController {
     summary: '대기열 조회',
     description: '유저의 대기열 상태 및 순서를 조회합니다.',
   })
-  @ApiHeader({ name: 'X-Token', description: '대기열 토큰', required: true })
+  @ApiHeader({
+    name: 'authorization',
+    description: '대기열 토큰',
+    required: true,
+  })
   @ApiResponse({
     status: 200,
     description: '대기열 조회 성공',
     schema: { example: { tokenState: 'WAITING' } },
   })
   async getQueuePosition(
-    @Headers('X-Token') tokenHeader: string,
+    @Headers('authorization') tokenHeader: string,
     @Res() res: Response,
   ) {
     const [uuid] = tokenHeader.split('-QUEUE:');
@@ -61,7 +65,7 @@ export class QueueController {
       await this.queueService.getMyQueuePosition(uuid);
 
     // 대기열 순서를 헤더에 추가
-    res.setHeader('X-Token', token);
+    res.setHeader('authorization', token);
 
     const responseBody = { tokenState };
 

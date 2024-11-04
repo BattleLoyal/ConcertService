@@ -1,7 +1,8 @@
-import { EntityManager } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
+import { Payment } from 'src/payment/domain/entity/payment.entity';
 
-export interface PaymentRepository {
-  insertPaymentRecord(
+export abstract class PaymentRepository extends Repository<Payment> {
+  abstract insertPaymentRecord(
     userId: number,
     status: string,
     amount: number,

@@ -26,7 +26,7 @@ export class SchedulerService {
   }
 
   // 1분마다
-  //@Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_MINUTE)
   async activateQueueTokens() {
     try {
       const waitingTokens =
@@ -44,7 +44,7 @@ export class SchedulerService {
   }
 
   // 1분마다
-  //@Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_MINUTE)
   async expireOldActiveTokens() {
     try {
       const expiredTokens =
@@ -62,7 +62,7 @@ export class SchedulerService {
   }
 
   // 1분마다
-  //@Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_MINUTE)
   async resetExpiredSeats() {
     try {
       const expiredSeats =
