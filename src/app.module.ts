@@ -9,6 +9,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { getDBConfig } from './common/config/database.config';
+import { RedisModule } from './common/redis/redis.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { getDBConfig } from './common/config/database.config';
       inject: [ConfigService],
       useFactory: getDBConfig,
     }),
+    RedisModule,
   ],
   controllers: [AppController],
   providers: [AppService],

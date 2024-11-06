@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  redis-stack:
+    image: redis/redis-stack:latest
+    container_name: redis-stack
+    ports:
+      - "6379:6379"    # Redis 서버 포트
+      - "8001:8001"    # Redis Insight 포트
+    environment:
+      - REDIS_ARGS=--save 60 1000 --appendonly yes  # 데이터 지속성을 위한 설정
+      - REDISTIMESERIES_ARGS=RETENTION_POLICY=20    # 시계열 데이터 보존 정책
+    volumes:
+      - ./local-data:/data    # 로컬 데이터 볼륨 마운트
+    restart: unless-stopped
