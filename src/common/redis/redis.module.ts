@@ -1,20 +1,15 @@
-import { Module, Global } from '@nestjs/common';
-import Redis from 'ioredis';
+import { Module } from '@nestjs/common';
+import { RedisModule as NestRedisModule } from '@liaoliaots/nestjs-redis';
 
-@Global()
 @Module({
-  providers: [
-    {
-      provide: 'REDIS_CLIENT',
-      useFactory: () => {
-        return new Redis({
-          host: 'localhost', // Docker Redis host
-          port: 6379, // Redis server port
-          // password: 'your_password', // Uncomment if a password is required
-        });
+  imports: [
+    NestRedisModule.forRoot({
+      config: {
+        host: 'localhost', // Redis 호스트
+        port: 6379, // Redis 포트
       },
-    },
+    }),
   ],
-  exports: ['REDIS_CLIENT'],
+  exports: [NestRedisModule],
 })
 export class RedisModule {}

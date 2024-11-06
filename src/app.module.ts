@@ -10,6 +10,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { getDBConfig } from './common/config/database.config';
 import { RedisModule } from './common/redis/redis.module';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { CacheInterceptor } from '@nestjs/cache-manager';
 
 @Module({
   imports: [
