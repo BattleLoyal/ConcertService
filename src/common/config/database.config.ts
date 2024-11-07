@@ -18,6 +18,7 @@ export const getDBConfig = (
   database: configService.get<string>('DB_DATABASE'),
   entities: [Seat, Performance, Queue, Concert, User, Reservation],
   synchronize: true,
+  dropSchema: true, // 테스트용도
   timezone: '+09:00',
   extra: {
     connectionLimit: 20,

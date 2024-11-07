@@ -44,7 +44,7 @@ export class SchedulerService {
   }
 
   // 1분마다
-  @Cron(CronExpression.EVERY_MINUTE)
+  //@Cron(CronExpression.EVERY_MINUTE)
   async expireOldActiveTokens() {
     try {
       const expiredTokens =

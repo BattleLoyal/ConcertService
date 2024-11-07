@@ -34,7 +34,7 @@ import { TokenStateGuard } from 'src/common/guards/token-state.guard';
 export class ConcertController {
   constructor(private readonly concertService: ConcertService) {}
 
-  @Get(':id/date')
+  @Get(':id/date-nocache')
   @ApiOperation({
     summary: '예약 가능 날짜 조회',
     description: '특정 콘서트의 예약 가능 날짜를 조회합니다.',
@@ -72,7 +72,25 @@ export class ConcertController {
     };
   }
 
-  @Get(':id/seat')
+  // 캐시 적용
+  @Get(':id/date')
+  @UseGuards(TokenStateGuard)
+  async getAvailableDatesCache(
+    @Param('id') concertId: number,
+    @Query('date') date: string,
+    @Headers('authorization') token: string,
+  ): Promise<AvailableDatesResponseDto> {
+    const availableDates = await this.concertService.getAvailableDatesWithCache(
+      concertId,
+      date,
+    );
+
+    return {
+      availableDates,
+    };
+  }
+
+  @Get(':id/seat-nocache')
   @ApiOperation({ summary: '예약 가능한 좌석 조회' })
   @ApiParam({ name: 'id', description: '콘서트 ID', example: 1 })
   @ApiQuery({ name: 'date', description: '예약 날짜', example: '2024-10-17' })
@@ -101,11 +119,28 @@ export class ConcertController {
     return { availableSeats };
   }
 
+  // 캐시를 적용한 버전
+  @Get(':id/seat')
+  @UseGuards(TokenStateGuard)
+  async getAvailableSeatsWithCache(
+    @Param('id') concertId: number,
+    @Query('date') date: string,
+    @Headers('authorization') token: string,
+  ): Promise<AvailableSeatsResponseDto> {
+    const availableSeats = await this.concertService.getAvailableSeatsWithCache(
+      concertId,
+      date,
+    );
+
+    return { availableSeats };
+  }
+
+  // 캐시 미적용 버전
   @Post(':id/reserve-seat')
   @HttpCode(200)
   @ApiOperation({
-    summary: '좌석 임시 예약',
-    description: '좌석을 5분간 임시로 예약합니다.',
+    summary: '좌석 임시 예약 (캐시 미적용)',
+    description: '좌석을 5분간 임시로 예약합니다. (캐시 미적용)',
   })
   @ApiParam({ name: 'id', description: '콘서트 ID', example: 1 })
   @ApiQuery({ name: 'date', description: '예약할 날짜', example: '2024-10-17' })
@@ -122,13 +157,29 @@ export class ConcertController {
     type: ReserveSeatResponseDto,
   })
   @UseGuards(TokenStateGuard)
+  async reserveSeatNoCache(
+    @Param('id') concertId: number,
+    @Body() reserveSeatDto: ReserveSeatRequestDto,
+    @Headers('authorization') token: string,
+  ): Promise<ReserveSeatResponseDto> {
+    reserveSeatDto.concertId = concertId;
+    return await this.concertService.reserveSeatWithPessimisticLock(
+      reserveSeatDto,
+      token,
+    );
+  }
+
+  // 캐시 적용 버전
+  @Post(':id/reserve-seat-cache')
+  @HttpCode(200)
+  @UseGuards(TokenStateGuard)
   async reserveSeat(
     @Param('id') concertId: number,
     @Body() reserveSeatDto: ReserveSeatRequestDto,
     @Headers('authorization') token: string,
   ): Promise<ReserveSeatResponseDto> {
     reserveSeatDto.concertId = concertId;
-    return await this.concertService.reserveSeatWithOptimisticLock(
+    return await this.concertService.reserveSeatWithOptimisticLockWithCache(
       reserveSeatDto,
     );
   }

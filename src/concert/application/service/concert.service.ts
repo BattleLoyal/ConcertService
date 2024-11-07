@@ -38,6 +38,27 @@ export class ConcertService {
     concertId: number,
     startDate: string,
   ): Promise<string[]> {
+    const parsedDate = new Date(startDate);
+
+    // 예약 가능한 날짜 조회를 위해 PerformanceRepository 호출
+    const performances = await this.performanceRepository.getAvailableDates(
+      concertId,
+      parsedDate,
+    );
+
+    if (!performances.length) {
+      throw new NotFoundException('No available dates found for this concert.');
+    }
+
+    return performances.map(
+      (performance) => new Date(performance.date).toISOString().split('T')[0],
+    );
+  }
+
+  async getAvailableDatesWithCache(
+    concertId: number,
+    startDate: string,
+  ): Promise<string[]> {
     const hashKey = `performances:${concertId}`;
     const start = new Date(startDate);
 
@@ -59,8 +80,10 @@ export class ConcertService {
           hashKey,
           performance.date.toString(),
           JSON.stringify(performance),
+          'EX',
+          86400, // TTL : 24시간
         );
-        performances[performance.date.toString()] = JSON.stringify(performance); // 로컬 변수 업데이트
+        performances[performance.date.toString()] = JSON.stringify(performance);
       }
 
       // DB에서 모든 공연 정보 조회했다는 로그
@@ -83,14 +106,42 @@ export class ConcertService {
   }
 
   async getAvailableSeats(concertId: number, date: string): Promise<number[]> {
-    const seatCacheKey = `available_seats:${concertId}:${date}`;
+    // 공연 조회
+    const performance =
+      await this.performanceRepository.getPerformanceByConcertAndDate(
+        concertId,
+        date,
+      );
+    if (!performance) {
+      throw new NotFoundException('해당 날짜의 공연을 찾을 수 없습니다.');
+    }
+
+    // 해당 공연에 예약 가능한 좌석 조회
+    const availableSeats =
+      await this.seatRepository.getAvailableSeatsByPerformance(
+        performance.performanceid,
+      );
+
+    // 예약 가능한 좌석 번호 배열 반환
+    return availableSeats.map((seat) => seat.seatnumber);
+  }
+
+  // 캐시를 적용한 버전
+  async getAvailableSeatsWithCache(
+    concertId: number,
+    date: string,
+  ): Promise<number[]> {
+    const seatCacheKey = `concert:${concertId}:date:${date}:seats`;
 
     // Redis에서 예약 가능한 좌석 목록 조회
-    const cachedSeats = await this.redisClient.get(seatCacheKey);
+    const cachedSeats = await this.redisClient.hgetall(seatCacheKey);
 
-    if (cachedSeats) {
+    if (cachedSeats && Object.keys(cachedSeats).length > 0) {
       console.log('getAvailableSeats::캐시에서 좌석 목록 조회');
-      return JSON.parse(cachedSeats);
+      // 예약 가능한 좌석만 필터링하여 반환
+      return Object.keys(cachedSeats)
+        .filter((seatNumber) => cachedSeats[seatNumber] === 'RESERVABLE')
+        .map(Number);
     }
 
     // 공연 정보 확인 후 performanceId 가져오기
@@ -102,18 +153,18 @@ export class ConcertService {
       await this.seatRepository.getAvailableSeatsByPerformance(performanceId);
     console.log('getAvailableSeats::DB에서 좌석 정보 조회');
 
-    // 좌석 번호만 추출하여 배열로 변환
-    const seatNumbers = availableSeats.map((seat) => seat.seatnumber);
+    // 좌석 상태를 해시 자료 구조로 Redis에 저장
+    for (const seat of availableSeats) {
+      await this.redisClient.hset(
+        seatCacheKey,
+        seat.seatnumber.toString(),
+        'RESERVABLE',
+      );
+    }
+    // 1초 TTL
+    await this.redisClient.expire(seatCacheKey, 1);
 
-    // Redis에 좌석 정보를 저장 (TTL을 설정해 만료 시간을 추가)
-    await this.redisClient.set(
-      seatCacheKey,
-      JSON.stringify(seatNumbers),
-      'EX',
-      300,
-    ); // 5분 TTL
-
-    return seatNumbers;
+    return availableSeats.map((seat) => seat.seatnumber);
   }
 
   // 좌석 예약
@@ -170,6 +221,55 @@ export class ConcertService {
     reserveSeatDto: ReserveSeatRequestDto,
   ): Promise<ReserveSeatResponseDto> {
     const { concertId, userId, date, seatNumber } = reserveSeatDto;
+
+    // 콘서트 ID와 날짜로 공연 아이디 가져오기
+    const performance =
+      await this.performanceRepository.getPerformanceByConcertAndDate(
+        concertId,
+        date,
+      );
+    if (!performance) {
+      throw new NotFoundException('해당 날짜의 공연을 찾을 수 없습니다.');
+    }
+
+    // 좌석 조회 - 예약 가능 상태 확인
+    const seat = await this.seatRepository.findOneByPerformanceAndSeatNumber(
+      performance.performanceid,
+      seatNumber,
+    );
+    if (!seat || seat.status !== 'RESERVABLE') {
+      throw new ConflictException('해당 좌석은 예약할 수 없습니다.');
+    }
+
+    // 5분 동안 임시 예약 설정
+    const expireTime = new Date();
+    expireTime.setMinutes(expireTime.getMinutes() + 5);
+
+    // 좌석 정보 업데이트
+    seat.status = 'TEMP'; // 임시 예약
+    seat.userId = userId;
+    seat.expire = expireTime;
+
+    // 낙관적 락을 적용하여 상태 업데이트
+    await this.seatRepository.reserveSeatWithOptimisticLock(seat);
+
+    const result: ReserveSeatResponseDto = {
+      userId,
+      date,
+      seatNumber,
+      concertId,
+      expire: expireTime.toLocaleString(),
+    };
+
+    return result;
+  }
+
+  // 캐시 적용
+  // 좌석 예약 - 낙관적 락
+  async reserveSeatWithOptimisticLockWithCache(
+    reserveSeatDto: ReserveSeatRequestDto,
+  ): Promise<ReserveSeatResponseDto> {
+    const { concertId, userId, date, seatNumber } = reserveSeatDto;
     const performanceCacheKey = `performances:${concertId}:${date}`;
 
     // 공연 ID를 캐시에서 가져오거나 DB에서 조회
@@ -180,6 +280,7 @@ export class ConcertService {
       console.log('reserveSeatWithOptimisticLock::캐시에서 공연 정보 조회');
       performanceId = JSON.parse(cachedPerformance).performanceid;
     } else {
+      console.log('reserveSeatWithOptimisticLock::DB에서 공연 정보 조회');
       const performance =
         await this.performanceRepository.getPerformanceByConcertAndDate(
           concertId,
@@ -190,7 +291,6 @@ export class ConcertService {
         throw new NotFoundException('해당 날짜의 공연을 찾을 수 없습니다.');
       }
 
-      console.log('reserveSeatWithOptimisticLock::DB에서 공연 정보 조회');
       performanceId = performance.performanceid;
 
       // 공연 정보를 캐시에 저장
@@ -198,42 +298,45 @@ export class ConcertService {
         performanceCacheKey,
         JSON.stringify(performance),
         'EX',
-        300,
+        86400,
       );
     }
 
-    // 특정 좌석 상태를 캐시 또는 DB에서 조회
-    const seatStatus = await this.getSeatStatusFromCacheOrDb(
-      concertId,
-      date,
-      seatNumber,
-      performanceId,
+    // 예약 가능한 좌석 캐시에서 해당 좌석이 존재하지 않으면 오류
+    const seatCacheKey = `concert:${concertId}:date:${date}:seats`;
+    const cachedStatus = await this.redisClient.hget(
+      seatCacheKey,
+      seatNumber.toString(),
     );
 
-    // 예약 가능한 상태인지 확인
-    if (seatStatus !== 'RESERVABLE') {
-      throw new ConflictException('해당 좌석은 예약할 수 없습니다.');
+    if (!cachedStatus) {
+      throw new NotFoundException('해당 좌석을 예약할 수 없습니다.');
     }
 
-    // 좌석을 TEMP 상태로 임시 예약 설정 (5분 후 만료)
-    const expireTime = new Date();
-    expireTime.setMinutes(expireTime.getMinutes() + 5);
-
     try {
+      // 좌석을 TEMP 상태로 임시 예약 설정 (5분 후 만료)
+      const expireTime = new Date();
+      expireTime.setMinutes(expireTime.getMinutes() + 5);
+
       // 낙관적 락을 적용하여 DB에서 좌석 상태 업데이트
+      // 좌석 조회
       const seat = await this.seatRepository.findOneByPerformanceAndSeatNumber(
         performanceId,
         seatNumber,
       );
+
+      if (!seat) {
+        throw new NotFoundException('해당 공연과 좌석을 찾을 수 없습니다.');
+      }
+
       seat.status = 'TEMP';
       seat.userId = userId;
       seat.expire = expireTime;
 
       await this.seatRepository.reserveSeatWithOptimisticLock(seat);
 
-      // 예약이 성공적으로 완료되면 캐시에서 해당 좌석 삭제 (필요 시 TEMP로 캐시 업데이트)
-      const seatCacheKey = `seat_status:${concertId}:${date}:${seatNumber}`;
-      await this.redisClient.del(seatCacheKey);
+      // 예약이 성공적으로 완료되면 캐시에서 해당 좌석 삭제
+      // await this.redisClient.hdel(seatCacheKey, seatNumber.toString());
 
       return {
         userId,
@@ -343,38 +446,5 @@ export class ConcertService {
     }
 
     return performance;
-  }
-
-  async getSeatStatusFromCacheOrDb(
-    concertId: number,
-    date: string,
-    seatNumber: number,
-    performanceId: number,
-  ): Promise<string> {
-    const seatCacheKey = `seat_status:${concertId}:${date}:${seatNumber}`;
-
-    // Redis에서 좌석 상태 조회
-    const cachedStatus = await this.redisClient.get(seatCacheKey);
-
-    if (cachedStatus) {
-      return cachedStatus;
-    }
-
-    // 캐시에 없을 경우 DB에서 해당 좌석의 상태 조회
-    const seat = await this.seatRepository.findOneByPerformanceAndSeatNumber(
-      performanceId,
-      seatNumber,
-    );
-
-    if (!seat) {
-      throw new NotFoundException('해당 좌석을 찾을 수 없습니다.');
-    }
-
-    // 좌석 상태가 RESERVABLE일 때만 캐시에 저장
-    if (seat.status === 'RESERVABLE') {
-      await this.redisClient.set(seatCacheKey, seat.status, 'EX', 300); // 5분 TTL
-    }
-
-    return seat.status;
   }
 }
