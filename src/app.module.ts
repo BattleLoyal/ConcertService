@@ -10,6 +10,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { getDBConfig } from './common/config/database.config';
 import { RedisModule } from './common/redis/redis.module';
+import { DataInitializerService } from './data-initializer.service';
 
 @Module({
   imports: [
@@ -30,6 +31,6 @@ import { RedisModule } from './common/redis/redis.module';
     RedisModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, DataInitializerService],
 })
 export class AppModule {}
