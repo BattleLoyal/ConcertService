@@ -17,7 +17,7 @@ export class PerformanceRepositoryImpl implements PerformanceRepository {
     return await performanceManager
       .createQueryBuilder(Performance, 'performance')
       .where('performance.concertid = :concertId', { concertId })
-      .andWhere('DATE(performance.date) >= DATE(:startDate)', { startDate })
+      .andWhere('performance.date >= :startDate', { startDate })
       .getMany();
   }
 

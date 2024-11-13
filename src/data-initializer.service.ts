@@ -33,7 +33,9 @@ export class DataInitializerService implements OnModuleInit {
     for (let i = 0; i < 10; i++) {
       const performance = new Performance();
       performance.concertid = concert.concertid;
-      performance.date = new Date(2024, 10, 7 + i);
+      const date = new Date();
+      date.setDate(date.getDate() + i);
+      performance.date = date;
       performances.push(performance);
     }
     await performanceRepository.save(performances);

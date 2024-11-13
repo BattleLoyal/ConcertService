@@ -62,3 +62,4 @@ package-lock.json
 local-data/appendonlydir/appendonly.aof.1.incr.aof
 package-lock.json
 local-data/appendonlydir/appendonly.aof.1.incr.aof
+local-data/appendonlydir/*.aof*

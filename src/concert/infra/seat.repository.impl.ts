@@ -9,6 +9,7 @@ export class SeatRepositoryImpl extends SeatRepository {
     super(Seat, dataSource.createEntityManager());
   }
 
+  // 해당 공연 중 예약 가능한 상태의 좌석 리스트 조회
   async getAvailableSeatsByPerformance(
     performanceId: number,
     manager?: EntityManager,
@@ -57,7 +58,7 @@ export class SeatRepositoryImpl extends SeatRepository {
       .execute();
   }
 
-  // 임시 예약된 좌석 확인
+  // 유저가 임시 예약한 좌석 확인
   async getTempReservedSeat(
     performanceId: number,
     seatNumber: number,
@@ -89,7 +90,7 @@ export class SeatRepositoryImpl extends SeatRepository {
     });
   }
 
-  // 낙관적 락을 사용하여 좌석 예약 상태 업데이트
+  // 좌석 임시 예약 - 낙관적 락
   async reserveSeatWithOptimisticLock(
     seat: Seat,
     manager?: EntityManager,
