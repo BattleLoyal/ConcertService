@@ -22,6 +22,8 @@ export class DataInitializerService implements OnModuleInit {
     const queueRepository = this.dataSource.getRepository(Queue);
 
     // 콘서트
+    // 따로 DB 데이터 추가했음
+    /*
     const concert = new Concert();
     concert.title = 'Test Concert';
     concert.singer = 'Test Singer';
@@ -53,6 +55,7 @@ export class DataInitializerService implements OnModuleInit {
       }
       await seatRepository.save(seats);
     }
+    */
 
     // 유저 및 대기열
     const users = [];

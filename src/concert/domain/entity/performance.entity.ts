@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
 
 @Entity('performance')
 export class Performance {
@@ -6,6 +6,7 @@ export class Performance {
   performanceid: number;
 
   @Column()
+  @Index()
   concertid: number;
 
   @Column({ type: 'date' })
