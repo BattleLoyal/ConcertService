@@ -17,6 +17,6 @@ async function bootstrap() {
 
   fs.writeFileSync('./swagger.json', JSON.stringify(document));
 
-  await app.listen(3000);
+  await app.listen(4000);
 }
 bootstrap();

@@ -1,7 +1,14 @@
 import { Version } from '@nestjs/common';
-import { Entity, PrimaryGeneratedColumn, Column, VersionColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  VersionColumn,
+  Index,
+} from 'typeorm';
 
 @Entity('seat')
+@Index('IDX_PERFORMANCE_SEAT', ['performanceId', 'seatnumber'])
 export class Seat {
   @PrimaryGeneratedColumn()
   seatid: number;

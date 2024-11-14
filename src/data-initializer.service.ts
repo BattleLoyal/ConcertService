@@ -22,6 +22,8 @@ export class DataInitializerService implements OnModuleInit {
     const queueRepository = this.dataSource.getRepository(Queue);
 
     // 콘서트
+    // 따로 DB 데이터 추가했음
+    /*
     const concert = new Concert();
     concert.title = 'Test Concert';
     concert.singer = 'Test Singer';
@@ -33,7 +35,9 @@ export class DataInitializerService implements OnModuleInit {
     for (let i = 0; i < 10; i++) {
       const performance = new Performance();
       performance.concertid = concert.concertid;
-      performance.date = new Date(2024, 10, 7 + i);
+      const date = new Date();
+      date.setDate(date.getDate() + i);
+      performance.date = date;
       performances.push(performance);
     }
     await performanceRepository.save(performances);
@@ -51,6 +55,7 @@ export class DataInitializerService implements OnModuleInit {
       }
       await seatRepository.save(seats);
     }
+    */
 
     // 유저 및 대기열
     const users = [];
