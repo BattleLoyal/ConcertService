@@ -124,12 +124,17 @@ export class PaymentService {
           seat: seat.seatid,
           paymentId: paymentId,
         };
-        await this.kafkaProducer.send('order', [
-          { value: JSON.stringify(orderInfo) },
-        ]);
-        // Outbox Pattern
-        const payload = JSON.stringify(orderInfo);
-        await this.outboxRepository.saveOutboxMessage('order', payload);
+        try {
+          // 카프카 발행
+          await this.kafkaProducer.send('order', [
+            { value: JSON.stringify(orderInfo) },
+          ]);
+        } catch (error) {
+          // 실패하면 아웃박스에 저장
+          const payload = JSON.stringify(orderInfo);
+          await this.outboxRepository.saveOutboxMessage('order', payload);
+          console.error('Error sending message to Kafka:', error.message);
+        }
 
         return {
           status: 'Success',

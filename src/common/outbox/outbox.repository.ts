@@ -11,7 +11,7 @@ export class OutboxRepository {
   ) {}
 
   async saveOutboxMessage(topic: string, payload: string): Promise<void> {
-    const outbox = this.repository.create({ topic, payload });
+    const outbox = this.repository.create({ topic, payload, processed: false });
     await this.repository.save(outbox);
   }
 
