@@ -6,6 +6,8 @@ import { QueueSchedulerRepository } from './queuescheduler.repository';
 import { Queue } from '../queue/domain/entity/queue.entity';
 import { Seat } from '../concert/domain/entity/seat.entity';
 import { SeatSchedulerRepository } from './seatscheduler.repository';
+import { OutboxRepository } from 'src/common/outbox/outbox.repository';
+import { KafkaProducer } from 'src/kafka/kafka-producer';
 
 @Injectable()
 export class SchedulerService {
@@ -18,6 +20,8 @@ export class SchedulerService {
     private readonly queueRepository: Repository<Queue>,
     @InjectRepository(Seat)
     private readonly seatRepository: Repository<Seat>,
+    private readonly outboxRepository: OutboxRepository,
+    private readonly kafkaProducer: KafkaProducer,
   ) {
     this.queueSchedulerRepository = new QueueSchedulerRepository(
       queueRepository,
@@ -44,7 +48,7 @@ export class SchedulerService {
   }
 
   // 1분마다
-  //@Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_MINUTE)
   async expireOldActiveTokens() {
     try {
       const expiredTokens =
@@ -78,6 +82,27 @@ export class SchedulerService {
       }
     } catch (error) {
       this.logger.error('임시 예약 좌석 만료 스케쥴러 실패', error);
+    }
+  }
+
+  // 10초 간격
+  @Cron(CronExpression.EVERY_10_SECONDS)
+  async processOutboxMessages(): Promise<void> {
+    const messages = await this.outboxRepository.getUnprocessedMessages();
+
+    for (const message of messages) {
+      try {
+        console.log(`Processing Outbox message ID: ${message.id}`);
+        await this.kafkaProducer.send(message.topic, [
+          { value: message.payload },
+        ]);
+        await this.outboxRepository.markAsProcessed(message.id);
+      } catch (error) {
+        console.error(
+          `Failed to process Outbox message ID: ${message.id}`,
+          error,
+        );
+      }
     }
   }
 }
