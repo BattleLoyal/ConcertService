@@ -15,6 +15,7 @@ import { Reservation } from '../concert/domain/entity/reservation.entity';
 import { PerformanceRepositoryImpl } from 'src/concert/infra/performance.repository.impl';
 import { KafkaProducer } from 'src/kafka/kafka-producer';
 import { KafkaModule } from 'src/kafka/kafka.module';
+import { OutboxModule } from 'src/common/outbox/outbox.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { KafkaModule } from 'src/kafka/kafka.module';
       Reservation,
       Performance,
     ]),
+    OutboxModule,
   ],
   providers: [
     PaymentService,

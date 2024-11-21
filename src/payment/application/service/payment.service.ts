@@ -14,6 +14,7 @@ import { CreatePaymentDto } from '../../interface/dto/create-payment.dto';
 import { EntityManager } from 'typeorm';
 import { PerformanceRepositoryImpl } from 'src/concert/infra/performance.repository.impl';
 import { KafkaProducer } from 'src/kafka/kafka-producer';
+import { OutboxRepository } from 'src/common/outbox/outbox.repository';
 
 @Injectable()
 export class PaymentService {
@@ -26,6 +27,7 @@ export class PaymentService {
     private readonly paymentRepository: PaymentRepositoryImpl,
     private readonly entityManager: EntityManager,
     private readonly kafkaProducer: KafkaProducer,
+    private readonly outboxRepository: OutboxRepository,
   ) {}
 
   async processPayment(
@@ -122,9 +124,17 @@ export class PaymentService {
           seat: seat.seatid,
           paymentId: paymentId,
         };
-        await this.kafkaProducer.send('order', [
-          { value: JSON.stringify(orderInfo) },
-        ]);
+        try {
+          // 카프카 발행
+          await this.kafkaProducer.send('order', [
+            { value: JSON.stringify(orderInfo) },
+          ]);
+        } catch (error) {
+          // 실패하면 아웃박스에 저장
+          const payload = JSON.stringify(orderInfo);
+          await this.outboxRepository.saveOutboxMessage('order', payload);
+          console.error('Error sending message to Kafka:', error.message);
+        }
 
         return {
           status: 'Success',
