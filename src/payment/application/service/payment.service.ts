@@ -13,6 +13,7 @@ import { PaymentRepositoryImpl } from '../../infra/payment.repository.impl';
 import { CreatePaymentDto } from '../../interface/dto/create-payment.dto';
 import { EntityManager } from 'typeorm';
 import { PerformanceRepositoryImpl } from 'src/concert/infra/performance.repository.impl';
+import { KafkaProducer } from 'src/kafka/kafka-producer';
 
 @Injectable()
 export class PaymentService {
@@ -24,6 +25,7 @@ export class PaymentService {
     private readonly performanceRepository: PerformanceRepositoryImpl,
     private readonly paymentRepository: PaymentRepositoryImpl,
     private readonly entityManager: EntityManager,
+    private readonly kafkaProducer: KafkaProducer,
   ) {}
 
   async processPayment(
@@ -113,6 +115,16 @@ export class PaymentService {
         // 토큰 상태를 EXPIRE로 변경
         const [uuid] = token.split('-QUEUE:');
         await this.queueRepository.updateTokenState(uuid, 'EXPIRE', manager);
+
+        // 카프카
+        const orderInfo = {
+          userId: userId,
+          seat: seat.seatid,
+          paymentId: paymentId,
+        };
+        await this.kafkaProducer.send('order', [
+          { value: JSON.stringify(orderInfo) },
+        ]);
 
         return {
           status: 'Success',

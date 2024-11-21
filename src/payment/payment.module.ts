@@ -13,6 +13,7 @@ import { Seat } from '../concert/domain/entity/seat.entity';
 import { Queue } from '../queue/domain/entity/queue.entity';
 import { Reservation } from '../concert/domain/entity/reservation.entity';
 import { PerformanceRepositoryImpl } from 'src/concert/infra/performance.repository.impl';
+import { KafkaProducer } from 'src/kafka/kafka-producer';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { PerformanceRepositoryImpl } from 'src/concert/infra/performance.reposit
     QueueRepositoryImpl,
     ReservationRepositoryImpl,
     PerformanceRepositoryImpl,
+    KafkaProducer,
   ],
   controllers: [PaymentController],
 })

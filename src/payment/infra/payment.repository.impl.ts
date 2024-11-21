@@ -16,18 +16,13 @@ export class PaymentRepositoryImpl extends PaymentRepository {
     amount: number,
     manager: EntityManager,
   ): Promise<number> {
-    const result = await manager
-      .createQueryBuilder()
-      .insert()
-      .into(Payment)
-      .values({
-        userId,
-        status,
-        amount,
-        paytime: new Date(),
-      })
-      .execute();
+    const result = await manager.save(Payment, {
+      userId,
+      status,
+      amount,
+      paytime: new Date(),
+    });
 
-    return result.identifiers[0].id;
+    return result.paymentid;
   }
 }

@@ -11,6 +11,7 @@ import { SchedulerModule } from './scheduler/scheduler.module';
 import { getDBConfig } from './common/config/database.config';
 import { RedisModule } from './common/redis/redis.module';
 import { DataInitializerService } from './data-initializer.service';
+import { KafkaModule } from './kafka/kafka.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { DataInitializerService } from './data-initializer.service';
     PaymentModule,
     QueueModule,
     SchedulerModule,
+    KafkaModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',

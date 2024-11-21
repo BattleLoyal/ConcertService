@@ -6,6 +6,7 @@ import { Queue } from 'src/queue/domain/entity/queue.entity';
 import { Concert } from 'src/concert/domain/entity/concert.entity';
 import { User } from 'src/user/domain/entity/user.entity';
 import { Reservation } from 'src/concert/domain/entity/reservation.entity';
+import { Payment } from 'src/payment/domain/entity/payment.entity';
 
 export const getDBConfig = (
   configService: ConfigService,
@@ -16,7 +17,7 @@ export const getDBConfig = (
   username: configService.get<string>('DB_USERNAME'),
   password: configService.get<string>('DB_PASSWORD'),
   database: configService.get<string>('DB_DATABASE'),
-  entities: [Seat, Performance, Queue, Concert, User, Reservation],
+  entities: [Seat, Performance, Queue, Concert, User, Reservation, Payment],
   synchronize: true,
   dropSchema: true, // 테스트용도
   timezone: '+09:00',
