@@ -1,8 +1,8 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
-import { Kafka, Consumer } from 'kafkajs';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Kafka, Consumer, EachMessagePayload } from 'kafkajs';
 
 @Injectable()
-export class KafkaConsumer implements OnModuleInit {
+export class KafkaConsumer implements OnModuleInit, OnModuleDestroy {
   private kafka: Kafka;
   private consumer: Consumer;
 
@@ -26,6 +26,20 @@ export class KafkaConsumer implements OnModuleInit {
           key: message.key?.toString(),
           value: message.value?.toString(),
         });
+      },
+    });
+  }
+
+  async consumeOneTime(
+    callback: (payload: EachMessagePayload) => void,
+  ): Promise<void> {
+    await this.consumer.connect();
+    await this.consumer.subscribe({ topic: 'order', fromBeginning: true });
+
+    await this.consumer.run({
+      eachMessage: async (payload) => {
+        callback(payload);
+        return;
       },
     });
   }

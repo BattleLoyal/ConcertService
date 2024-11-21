@@ -14,9 +14,11 @@ import { Queue } from '../queue/domain/entity/queue.entity';
 import { Reservation } from '../concert/domain/entity/reservation.entity';
 import { PerformanceRepositoryImpl } from 'src/concert/infra/performance.repository.impl';
 import { KafkaProducer } from 'src/kafka/kafka-producer';
+import { KafkaModule } from 'src/kafka/kafka.module';
 
 @Module({
   imports: [
+    KafkaModule,
     TypeOrmModule.forFeature([
       Payment,
       User,
