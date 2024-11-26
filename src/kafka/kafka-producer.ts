@@ -10,7 +10,7 @@ export class KafkaProducer implements OnModuleInit, OnModuleDestroy {
   constructor() {
     this.kafka = new Kafka({
       clientId: 'my-producer',
-      brokers: ['localhost:9094'], // Kafka 브로커 주소
+      brokers: [process.env.KAFKA_HOST], // Kafka 브로커 주소
     });
 
     this.producer = this.kafka.producer();

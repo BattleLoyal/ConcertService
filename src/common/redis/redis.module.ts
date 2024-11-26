@@ -5,7 +5,7 @@ import { RedisModule as NestRedisModule } from '@liaoliaots/nestjs-redis';
   imports: [
     NestRedisModule.forRoot({
       config: {
-        host: 'localhost', // Redis 호스트
+        host: process.env.REDIS_HOST, // Redis 호스트
         port: 6379, // Redis 포트
       },
     }),

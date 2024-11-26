@@ -1,6 +1,29 @@
 version: '3.8'
 
 services:
+  nest-docker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=development
+      - PORT=4000
+      - DATABASE_HOST=host.docker.internal
+      - DATABASE_PORT=3306
+      - REDIS_HOST=redis-stack
+      - REDIS_PORT=6379
+      - KAFKA_BROKER=kafka-0:9092 # Kafka 브로커 주소
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - redis-stack
+      - kafka-0
+    networks:
+      - kafka-network
+      - default
+
   redis-stack:
     image: redis/redis-stack:latest
     container_name: redis-stack
